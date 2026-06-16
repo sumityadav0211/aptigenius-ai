@@ -1,0 +1,6 @@
+{
+  "name": "Aptitude Quiz",
+  "description": "A beautiful, responsive, and complete Aptitude Quiz application powered by Gemini AI to dynamically generate MCQ questions on Mathematics, Reasoning, Verbal, DI, and Programming.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

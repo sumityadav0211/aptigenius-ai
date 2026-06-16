@@ -1,0 +1,3858 @@
+<!doctype html>
+<html lang="en" class="h-full bg-slate-50">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Aptitude Quiz AI - Dynamic Mock Generator</title>
+    <!-- Tailwind CSS Play CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Roboto+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+    <!-- Lucide Icons -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <!-- PDF.js library for extracts -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+    <script>
+      // Initialize pdfjs worker on demand
+      if (typeof window !== "undefined" && window.pdfjsLib) {
+        window.pdfjsLib.GlobalWorkerOptions.workerSrc = "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js";
+      }
+    </script>
+    <!-- Canvas Confetti and custom style -->
+    <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
+    <!-- Marked Markdown Parser -->
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+
+    <script>
+      tailwind.config = {
+        theme: {
+          extend: {
+            colors: {
+              brand: {
+                50: '#f0f3ff',
+                100: '#e0e7ff',
+                200: '#c7d2fe',
+                500: '#1a237e', // deep blue
+                600: '#151b60',
+                705: '#0f1446',
+                accent: '#e040fb', // vibrant violet
+              }
+            },
+            fontFamily: {
+              sans: ['Inter', 'sans-serif'],
+              mono: ['Roboto Mono', 'monospace'],
+            }
+          }
+        }
+      }
+    </script>
+    <style>
+      body {
+        font-family: 'Inter', sans-serif;
+      }
+      .custom-scrollbar::-webkit-scrollbar {
+        width: 6px;
+        height: 6px;
+      }
+      .custom-scrollbar::-webkit-scrollbar-track {
+        background: #f1f5f9;
+        border-radius: 4px;
+      }
+      .custom-scrollbar::-webkit-scrollbar-thumb {
+        background: #cbd5e1;
+        border-radius: 4px;
+      }
+      .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+        background: #94a3b8;
+      }
+      /* Expand/collapse transitions */
+      .accordion-content {
+        max-height: 0;
+        overflow: hidden;
+        transition: max-height 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+      }
+      .accordion-card.open .accordion-content {
+        max-height: 500px;
+        overflow-y: auto;
+      }
+      /* Pulse effect for alert timer */
+      @keyframes softPulse {
+        0%, 100% { opacity: 1; transform: scale(1); }
+        50% { opacity: 0.8; transform: scale(1.05); }
+      }
+      .timer-danger {
+        color: #ef4444;
+        animation: softPulse 1s infinite;
+      }
+      /* Custom Android download button pulse */
+      @keyframes buttonPulse {
+        0%, 100% { transform: scale(1); box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 0 0 0 rgba(0, 200, 83, 0.6); }
+        50% { transform: scale(1.03); box-shadow: 0 10px 15px -3px rgb(0 0 0 / 0.1), 0 0 12px 6px rgba(0, 200, 83, 0.35); }
+      }
+      .apk-download-pulse {
+        animation: buttonPulse 2s infinite ease-in-out;
+      }
+      /* Screen animations */
+      .fade-in {
+        animation: fadeIn 0.3s ease-out;
+      }
+      @keyframes fadeIn {
+        from { opacity: 0; transform: translateY(8px); }
+        to { opacity: 1; transform: translateY(0); }
+      }
+      
+      /* Pure-CSS slate dark mode styling rules */
+      .dark-mode-active {
+        background-color: #0f172a !important;
+        color: #f1f5f9 !important;
+      }
+      .dark-mode-active .bg-slate-50 {
+        background-color: #1e293b !important;
+        color: #cbd5e1 !important;
+      }
+      .dark-mode-active .bg-white {
+        background-color: #1e293b !important;
+        color: #f8fafc !important;
+        border-color: #334155 !important;
+      }
+      .dark-mode-active .text-slate-900,
+      .dark-mode-active .text-slate-800,
+      .dark-mode-active .text-slate-750,
+      .dark-mode-active .text-slate-700,
+      .dark-mode-active .text-slate-600 {
+        color: #cbd5e1 !important;
+      }
+      .dark-mode-active .text-slate-500 {
+        color: #94a3b8 !important;
+      }
+      .dark-mode-active .border-slate-200,
+      .dark-mode-active .border-slate-150,
+      .dark-mode-active .border-slate-100 {
+        border-color: #334155 !important;
+      }
+      .dark-mode-active .accordion-card {
+        background-color: #1e293b !important;
+        border-color: #334155 !important;
+      }
+      .dark-mode-active .option-select-btn {
+        background-color: #1e293b !important;
+        border-color: #334155 !important;
+        color: #e2e8f0 !important;
+      }
+      .dark-mode-active .option-select-btn:hover {
+        background-color: #334155 !important;
+      }
+      .dark-mode-active input,
+      .dark-mode-active select {
+        background-color: #1e293b !important;
+        color: #f1f5f9 !important;
+        border-color: #475569 !important;
+      }
+      
+      @keyframes slideUp {
+        from { opacity:0; transform:translateY(30px); }
+        to { opacity:1; transform:translateY(0); }
+      }
+    </style>
+  </head>
+  <body class="h-full text-slate-800 flex flex-col selection:bg-brand-100">
+
+    <!-- TOP HEADER BAR -->
+    <header class="bg-brand-500 text-white shadow-md sticky top-0 z-40">
+      <div class="max-w-6xl mx-auto px-4 py-2.5 md:py-3 flex items-center justify-between">
+        <div class="flex items-center space-x-2 md:space-x-3 cursor-pointer" onclick="goToScreen(1)">
+          <div class="bg-white/10 p-1.5 md:p-2 rounded-lg text-white flex-shrink-0">
+            <i data-lucide="award" class="w-5.5 h-5.5 md:w-6 md:h-6 text-yellow-300"></i>
+          </div>
+          <div class="min-w-0">
+            <h1 class="text-sm md:text-lg font-extrabold tracking-tight truncate">Aptitude Quiz AI</h1>
+            <p class="text-[10px] md:text-xs text-brand-100 truncate">AI-Generated Mock Tests</p>
+          </div>
+        </div>
+        
+        <div class="flex items-center space-x-1.5 md:space-x-2 flex-shrink-0">
+          <!-- API Secure Gateway status indicator -->
+          <div id="apiStatusIndicator" class="flex items-center space-x-1 px-2 py-1 md:space-x-1.5 md:px-3 md:py-1.5 rounded-full text-[10px] md:text-xs font-semibold bg-emerald-500/20 text-emerald-100 select-none cursor-pointer hover:bg-white/10 transition" onclick="openSettingsSidebar()" title="Click to view API Key settings">
+            <span class="w-2 h-2 rounded-full bg-emerald-400"></span>
+            <span class="hidden sm:inline">AI Online</span>
+            <i data-lucide="shield-check" class="w-3.5 h-3.5 text-emerald-400"></i>
+          </div>
+
+          <!-- History Trigger Button -->
+          <button onclick="openHistorySidebar()" class="p-2 hover:bg-white/10 rounded-full text-white transition relative" title="View History">
+            <i data-lucide="history" class="w-4.5 h-4.5 md:w-5 md:h-5"></i>
+            <span id="historyBadge" class="hidden absolute top-0.5 right-0.5 bg-brand-accent text-white text-[9px] font-bold px-1.5 py-0.5 rounded-full">0</span>
+          </button>
+
+          <!-- Keyboard Shortcut Guide Trigger -->
+          <button onclick="toggleShortcutModal()" class="p-2 hover:bg-white/10 rounded-full text-white transition hidden md:inline-flex" title="Keyboard Shortcuts">
+            <i data-lucide="keyboard" class="w-5 h-5"></i>
+          </button>
+
+          <!-- Settings Sidebar Trigger -->
+          <button onclick="openSettingsSidebar()" class="p-2 hover:bg-white/10 rounded-full text-white transition" title="API Keys & Settings">
+            <i data-lucide="settings" class="w-5 h-5 animate-[spin_10s_linear_infinite]"></i>
+          </button>
+        </div>
+      </div>
+    </header>
+
+    <!-- MAIN BODY SPACE -->
+    <main class="flex-1 max-w-4xl w-full mx-auto p-3 sm:p-4 md:py-8 flex flex-col justify-start">
+
+      <!-- ======================================= -->
+      <!-- SCREEN 1: LANDING PAGE & ACCORDIONS     -->
+      <!-- ======================================= -->
+      <section id="screen-1" class="fade-in space-y-6">
+        <div class="text-center py-4">
+          <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold bg-brand-50 text-brand-600 border border-brand-200 mb-2">
+            AI-Powered Smart Quiz
+          </span>
+          <h2 class="text-2xl md:text-3xl font-extrabold text-slate-900 tracking-tight">Expand Your Aptitude Threshold</h2>
+          <p class="text-sm text-slate-500 mt-1 max-w-xl mx-auto">
+            Choose from hundreds of specialized topics below. Our AI dynamically generates custom sets of fresh, challenging MCQ inquiries matching your selection.
+          </p>
+        </div>
+
+        <!-- ANDROID APP DOWNLOAD HERO BANNER -->
+        <div class="relative bg-gradient-to-r from-[#1a237e] to-[#283593] text-white rounded-2xl p-5 md:p-6 shadow-md overflow-hidden border border-indigo-950 flex flex-col sm:flex-row items-center justify-between gap-5">
+          <!-- Decorative Background Accents -->
+          <div class="absolute -right-8 -bottom-8 w-36 h-36 bg-white/5 rounded-full pointer-events-none"></div>
+          <div class="absolute right-16 -top-16 w-28 h-28 bg-white/5 rounded-full pointer-events-none"></div>
+          
+          <!-- v1.0.0 Badge in corner -->
+          <div class="absolute top-3 right-3 bg-white/10 text-brand-100 text-[9px] font-bold px-2 py-0.5 rounded-full border border-white/15">
+            v1.0.0 🤖
+          </div>
+
+          <div class="flex items-center space-x-3.5">
+            <div class="p-3 bg-white/10 rounded-xl text-yellow-300">
+              <i data-lucide="smartphone" class="w-8 h-8"></i>
+            </div>
+            <div>
+              <h3 class="text-sm md:text-base font-extrabold tracking-tight">
+                📱 Get the Android App — Learn on the go!
+              </h3>
+              <p class="text-[11px] md:text-xs text-indigo-100 mt-0.5 leading-relaxed">
+                Install our native package directly to practice aptitude questions anytime offline.
+              </p>
+              <p class="text-[10px] text-emerald-300 font-bold font-sans mt-1">
+                Free download • No Play Store needed • Direct install
+              </p>
+            </div>
+          </div>
+
+          <div class="flex flex-col min-[480px]:flex-row items-center gap-2.5 w-full sm:w-auto flex-shrink-0 z-10">
+            <!-- Green Download button with custom pulse -->
+            <button onclick="downloadAPK()" class="w-full min-[480px]:w-auto bg-[#00c853] hover:bg-[#00b24a] text-white font-extrabold text-xs py-2.5 px-4 rounded-xl cursor-pointer transition duration-150 flex items-center justify-center gap-1.5 uppercase tracking-wide apk-download-pulse">
+              <i data-lucide="download-cloud" class="w-4 h-4"></i> Download APK
+            </button>
+            
+            <!-- WhatsApp share button -->
+            <button onclick="shareOnWhatsApp()" class="w-full min-[480px]:w-auto bg-[#25d366] hover:bg-[#128c7e] text-white font-bold text-xs py-2.5 px-3 rounded-xl cursor-pointer transition duration-150 flex items-center justify-center gap-1">
+              <i data-lucide="share-2" class="w-3.5 h-3.5"></i> Share
+            </button>
+          </div>
+        </div>
+
+        <!-- PDF STUDY CARD UPLOAD SYSTEM -->
+        <div class="bg-white border border-slate-200 rounded-2xl p-5 md:p-6 shadow-sm space-y-4">
+          <div class="space-y-1">
+            <h3 class="text-sm md:text-base font-extrabold text-slate-800 flex items-center gap-1.5 text-slate-900 border-none">
+              <span>📄</span> Upload Your Study Material <span class="text-xs font-normal text-slate-400 font-sans tracking-tight">(Optional)</span>
+            </h3>
+            <p class="text-xs text-slate-500">
+              Upload a PDF and the app will generate questions exclusively from your uploaded content.
+            </p>
+          </div>
+
+          <!-- DRAG & DROP BOX CONTAINER -->
+          <div id="homePdfDropZone" 
+               class="border-2 border-dashed border-brand-200 hover:border-brand-400 bg-brand-50/10 rounded-xl p-6 flex flex-col items-center justify-center text-center gap-2 cursor-pointer transition relative hover:bg-brand-50/20 select-none"
+               onclick="document.getElementById('homePdfFileInput').click()"
+               oncopy="return false">
+            <input type="file" id="homePdfFileInput" accept=".pdf" class="hidden" onchange="handleHomePdfSelected(event)">
+            
+            <span class="text-3xl pointer-events-none">📄</span>
+            <span class="text-xs font-extrabold text-slate-700 pointer-events-none">Drag & drop your PDF here</span>
+            <span class="text-[10px] text-slate-400 pointer-events-none">or click to browse &mdash; PDF files only, max 10MB</span>
+          </div>
+
+          <!-- EXTRACTION PROGRESS BLOCK -->
+          <div id="homePdfProgressBlock" class="hidden bg-slate-50 border border-slate-200 rounded-xl p-4 space-y-3">
+            <div class="flex items-center justify-between text-[11px] font-bold text-slate-600">
+              <span id="homePdfProgressStatus" class="flex items-center gap-1.5">
+                <i data-lucide="loader" class="w-3.5 h-3.5 animate-spin"></i>
+                Reading PDF...
+              </span>
+              <span class="text-slate-400">Processing Pages</span>
+            </div>
+            
+            <div class="w-full bg-slate-200 h-2 rounded-full overflow-hidden">
+              <div id="homePdfProgressBarFill" class="bg-brand-500 h-full w-0 transition-all duration-150"></div>
+            </div>
+            <p class="text-[10px] text-slate-400">Extracting content layers. This may take up to 5 seconds depending on document length.</p>
+          </div>
+
+          <!-- SUCCESS BANNER BLOCK -->
+          <div id="homePdfSuccessBlock" class="hidden space-y-3">
+            <!-- Details bar -->
+            <div class="p-3 bg-slate-50 border border-slate-200 rounded-xl flex items-center justify-between gap-3 shadow-3xs">
+              <div class="flex items-center space-x-3 min-w-0">
+                <span class="text-emerald-500 shrink-0 text-lg font-bold">✅</span>
+                <div class="min-w-0 flex-1">
+                  <span id="homePdfSuccessFilename" class="block text-xs font-extrabold text-slate-700 truncate">document.pdf</span>
+                  <span id="homePdfSuccessSummary" class="block text-[10px] text-slate-400 mt-0.5">3 pages, 1530 words analyzed</span>
+                </div>
+              </div>
+              <button onclick="removeHomePdf(event)" 
+                      class="text-xs hover:bg-slate-200 text-slate-500 p-1.5 rounded-lg transition" 
+                      title="Remove PDF">
+                <i data-lucide="x" class="w-4 h-4 text-slate-500"></i>
+              </button>
+            </div>
+
+            <!-- Green banner with direct Configure Quiz button -->
+            <div class="p-3 bg-emerald-50 border border-emerald-200 text-emerald-900 rounded-xl text-xs font-bold flex items-center justify-between gap-2 shadow-2xs">
+              <span class="flex items-center gap-2">
+                <i data-lucide="check-circle" class="w-4 h-4 text-emerald-700 shrink-0"></i>
+                <span>PDF loaded — questions will be based on your document</span>
+              </span>
+              <button onclick="goToSetupFromPdf()" class="bg-emerald-600 hover:bg-emerald-700 text-white font-extrabold text-[11px] px-3.5 py-1.5 rounded-lg transition shrink-0 uppercase tracking-wide">Configure Quiz</button>
+            </div>
+          </div>
+
+          <!-- RED ERROR ALERT BOX -->
+          <div id="homePdfErrorBlock" class="hidden p-4 bg-rose-50 border border-rose-250 rounded-xl space-y-3 shadow-3xs">
+            <div class="flex items-start gap-2.5">
+              <span class="text-rose-500 text-lg">⚠️</span>
+              <div class="space-y-0.5">
+                <h4 id="homePdfErrorTitle" class="text-xs font-extrabold text-rose-900">PDF Load Failure</h4>
+                <p id="homePdfErrorMsg" class="text-[11px] text-rose-700 leading-relaxed">Could not read from file.</p>
+              </div>
+            </div>
+            
+            <div class="flex justify-end pt-1">
+              <button onclick="resetHomePdfUpload()" class="text-[10px] bg-rose-100/80 hover:bg-rose-200/80 text-rose-800 font-extrabold px-3 py-1.5 rounded-lg transition uppercase tracking-wider flex items-center gap-1">
+                <i data-lucide="rotate-ccw" class="w-3.5 h-3.5"></i> Try Another File
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <!-- CATEGORIES LIST -->
+        <div class="space-y-3.5" id="categoriesAccordionList">
+          <!-- CATEGORY CARDS WILL BE LOADED BY JS -->
+        </div>
+
+        <!-- RECENT ACTIVITY OVERVIEW -->
+        <div id="recentQuickStats" class="bg-white border border-slate-200 rounded-xl p-4 shadow-sm hidden">
+          <h3 class="text-xs font-bold text-slate-400 uppercase tracking-wider mb-2.5">Recent Activity Check</h3>
+          <div id="quickStatsGrid" class="grid grid-cols-2 md:grid-cols-4 gap-4">
+            <!-- Loaded by JS -->
+          </div>
+        </div>
+      </section>
+
+      <!-- ======================================= -->
+      <!-- SCREEN 2: SETUP & CONFIGURATION         -->
+      <!-- ======================================= -->
+      <section id="screen-2" class="fade-in hidden">
+        <div class="bg-white border border-slate-200 rounded-2xl p-6 md:p-8 shadow-sm space-y-6">
+          <div class="flex items-center justify-between border-b border-slate-100 pb-4">
+            <button onclick="goToScreen(1)" class="inline-flex items-center gap-1.5 text-xs text-slate-500 hover:text-brand-500 font-semibold py-1 px-2.5 bg-slate-100 hover:bg-brand-50 rounded-lg transition">
+              <i data-lucide="arrow-left" class="w-4 h-4"></i>
+              Back to Topics
+            </button>
+            <span class="text-xs font-semibold text-slate-400">Settings</span>
+          </div>
+
+          <div class="space-y-2">
+            <div class="text-xs uppercase tracking-widest text-slate-400 font-bold">Selected Path</div>
+            <div class="flex items-center gap-2">
+              <span id="setupCategoryBadge" class="bg-brand-50 text-brand-600 text-xs font-bold py-1 px-2.5 rounded-lg border border-brand-200">Category</span>
+              <span class="text-slate-300">/</span>
+              <h3 id="setupSubtopicTitle" class="text-lg font-bold text-slate-800">Selected Subtopic</h3>
+            </div>
+            <p class="text-xs text-slate-500 italic mt-1" id="setupTopicDescription">
+              AI will generate specialized questions custom tailoring to this topic.
+            </p>
+          </div>
+
+          <!-- STEP 1 — QUESTION COUNT -->
+          <div class="space-y-4 border-t border-slate-100 pt-4">
+            <div class="flex items-center gap-2 text-sm font-bold text-slate-800">
+              <span class="w-6 h-6 rounded-full bg-brand-500 text-white text-xs flex items-center justify-center font-extrabold">1</span>
+              <span>How many questions?</span>
+            </div>
+            <div class="grid grid-cols-2 min-[480px]:grid-cols-4 gap-2.5">
+              <button onclick="selectQuestionCount(10)" id="qBtn-10" class="q-config-btn hover:border-brand-500 text-slate-700 bg-white border border-slate-200 rounded-xl py-3 text-center transition duration-200 flex flex-col items-center justify-center gap-1">
+                <span class="text-base font-extrabold">10</span>
+                <span class="text-[10px] text-slate-400 font-medium">Questions</span>
+              </button>
+              <button onclick="selectQuestionCount(20)" id="qBtn-20" class="q-config-btn hover:border-brand-500 text-slate-700 bg-white border border-slate-200 rounded-xl py-3 text-center transition duration-200 flex flex-col items-center justify-center gap-1">
+                <span class="text-base font-extrabold">20</span>
+                <span class="text-[10px] text-slate-400 font-medium">Questions</span>
+              </button>
+              <button onclick="selectQuestionCount(30)" id="qBtn-30" class="q-config-btn hover:border-brand-500 text-slate-700 bg-white border border-slate-200 rounded-xl py-3 text-center transition duration-200 flex flex-col items-center justify-center gap-1">
+                <span class="text-base font-extrabold">30</span>
+                <span class="text-[10px] text-slate-400 font-medium">Questions</span>
+              </button>
+              <button onclick="selectQuestionCount(50)" id="qBtn-50" class="q-config-btn hover:border-brand-500 text-slate-700 bg-white border border-slate-200 rounded-xl py-3 text-center transition duration-200 flex flex-col items-center justify-center gap-1">
+                <span class="text-base font-extrabold">50</span>
+                <span class="text-[10px] text-slate-400 font-medium">Questions</span>
+              </button>
+            </div>
+
+            <!-- Timer / Information note -->
+            <div class="bg-indigo-50 border border-indigo-100 rounded-xl p-4 flex items-center space-x-3.5">
+              <div class="bg-indigo-500/10 p-2.5 rounded-lg text-indigo-600">
+                <i data-lucide="clock" class="w-5 h-5"></i>
+              </div>
+              <div>
+                <p class="text-xs font-bold text-indigo-900">1.5 minutes per question limitation</p>
+                <p class="text-[11px] text-indigo-700 mt-0.5" id="setupTimerNote">
+                  Timer = 1.5 minutes per question (e.g., 20 questions = 30 minutes)
+                </p>
+              </div>
+            </div>
+          </div>
+
+          <!-- STEP 2 — DIFFICULTY LEVEL -->
+          <div id="step2Container" class="space-y-4 border-t border-slate-100 pt-4 hidden">
+            <div class="flex items-center gap-2 text-sm font-bold text-slate-800">
+              <span class="w-6 h-6 rounded-full bg-brand-500 text-white text-xs flex items-center justify-center font-extrabold">2</span>
+              <span>Select Difficulty Level</span>
+            </div>
+            
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-3">
+              <!-- Easy Card Button -->
+              <button onclick="selectDifficulty('Easy')" id="diffBtn-easy" class="diff-config-btn hover:border-emerald-400 text-left p-4 rounded-xl border border-slate-200 bg-white transition duration-200 flex flex-col gap-1.5 focus:outline-none">
+                <div class="flex items-center gap-2">
+                  <span class="text-xl">🟢</span>
+                  <span class="text-sm font-extrabold text-slate-800">Easy</span>
+                </div>
+                <p class="text-[11px] text-slate-500 leading-normal">Basic concepts, straightforward questions, ideal for beginners</p>
+              </button>
+
+              <!-- Medium Card Button -->
+              <button onclick="selectDifficulty('Medium')" id="diffBtn-medium" class="diff-config-btn hover:border-amber-400 text-left p-4 rounded-xl border border-slate-200 bg-white transition duration-200 flex flex-col gap-1.5 focus:outline-none">
+                <div class="flex items-center gap-2">
+                  <span class="text-xl">🟡</span>
+                  <span class="text-sm font-extrabold text-slate-800">Medium</span>
+                </div>
+                <p class="text-[11px] text-slate-500 leading-normal">Moderate complexity, requires good understanding</p>
+              </button>
+
+              <!-- Hard Card Button -->
+              <button onclick="selectDifficulty('Hard')" id="diffBtn-hard" class="diff-config-btn hover:border-rose-400 text-left p-4 rounded-xl border border-slate-200 bg-white transition duration-200 flex flex-col gap-1.5 focus:outline-none">
+                <div class="flex items-center gap-2">
+                  <span class="text-xl">🔴</span>
+                  <span class="text-sm font-extrabold text-slate-800">Hard</span>
+                </div>
+                <p class="text-[11px] text-slate-500 leading-normal">Advanced level, tricky and complex questions, for experts</p>
+              </button>
+            </div>
+          </div>
+
+          <!-- PRACTICE ENGINE MODE SELECT -->
+          <div class="space-y-3 border-t border-slate-100 pt-4">
+            <div class="flex items-center justify-between">
+              <span class="text-xs font-bold uppercase tracking-widest text-slate-400">Practice Engine Mode</span>
+              <span class="text-[10px] bg-brand-50 text-brand-600 font-extrabold px-2.5 py-0.5 rounded-full select-none" id="currentModeSelectedBadge">AI Interactive</span>
+            </div>
+            
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+              <!-- Mode AI Card -->
+              <div id="engineModeAICard" onclick="toggleQuizEngineMode('ai')" class="cursor-pointer border-2 border-brand-500 bg-brand-50/20 rounded-xl p-3 flex items-start gap-2.5 transition select-none">
+                <div class="p-1.5 bg-brand-500 text-white rounded-lg mt-0.5" id="engineAICardIcon">
+                  <i data-lucide="sparkles" class="w-4 h-4"></i>
+                </div>
+                <div class="min-w-0 flex-1">
+                  <div class="text-[11px] font-extrabold text-slate-800">Google Gemini AI</div>
+                  <div class="text-[10px] text-slate-500 leading-tight mt-0.5">Generates highly customized, dynamic real-time Aptitude inquiries.</div>
+                </div>
+              </div>
+
+              <!-- Mode Offline Card -->
+              <div id="engineModeOfflineCard" onclick="toggleQuizEngineMode('offline')" class="cursor-pointer border border-slate-200 bg-white rounded-xl p-3 flex items-start gap-2.5 hover:border-slate-300 transition select-none">
+                <div class="p-1.5 bg-slate-100 text-slate-500 rounded-lg mt-0.5" id="engineOfflineCardIcon">
+                  <i data-lucide="zap-off" class="w-4 h-4"></i>
+                </div>
+                <div class="min-w-0 flex-1">
+                  <div class="text-[11px] font-extrabold text-slate-800">Offline Practice Simulator</div>
+                  <div class="text-[10px] text-slate-500 leading-tight mt-0.5">Instant sandbox play. Zero key setup, completely immune to rate limits.</div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- SUMMARY & CONFIRMATION ACTION -->
+          <div class="border-t border-slate-100 pt-4 space-y-3">
+            <div id="setupSummaryLine" class="text-sm font-semibold text-slate-705 text-center py-2 hidden">
+              <!-- Rendered via JS -->
+            </div>
+
+            <button id="startQuizBtn" disabled onclick="startQuizGeneration()" class="w-full bg-brand-500 hover:bg-brand-600 text-white font-bold py-3.5 px-6 rounded-xl transition duration-200 flex items-center justify-center gap-2 cursor-pointer">
+              <i data-lucide="play-circle" class="w-5 h-5"></i>
+              Start Quiz Generation
+            </button>
+          </div>
+        </div>
+      </section>
+
+      <!-- ======================================= -->
+      <!-- SCREEN 3: ACTIVE QUIZ                   -->
+      <!-- ======================================= -->
+      <section id="screen-3" class="fade-in hidden flex flex-col space-y-4">
+        
+        <!-- STATUS BAR -->
+        <div class="bg-white border border-slate-200 rounded-xl px-4 py-3 shadow-xs flex flex-wrap items-center justify-between gap-3 text-sm">
+          <div class="flex items-center space-x-2">
+            <span class="font-extrabold text-brand-500" id="quizActiveTopicLabel">Mathematics</span>
+            <span class="text-slate-300">|</span>
+            <span class="text-slate-500 font-semibold" id="quizActiveQuestionCounter">Question 1 of 10</span>
+          </div>
+
+          <div class="flex items-center space-x-3">
+            <!-- Keyboard shortcut status -->
+            <span class="hidden md:inline-flex items-center space-x-1 text-[11px] bg-slate-100 px-2.5 py-1 rounded-md text-slate-500 ring-1 ring-slate-200">
+              <kbd class="font-bold">Esc</kbd> <span>to Pause</span>
+            </span>
+
+            <!-- Chronos / Timer display -->
+            <div class="flex items-center space-x-1.5 font-bold px-3 py-1 bg-slate-100 rounded-lg text-slate-700" id="quizTimerBoundary">
+              <i data-lucide="clock" class="w-4 h-4" id="quizTimerIcon animate-spin"></i>
+              <span id="quizTimerCountdown" class="font-mono text-base tracking-wider">00:00</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- PROGRESS BAR -->
+        <div class="w-full bg-slate-200 h-2.5 rounded-full overflow-hidden shadow-inner">
+          <div id="quizProgressBarFill" class="bg-gradient-to-r from-brand-500 to-indigo-500 h-full w-0 transition-all duration-300"></div>
+        </div>
+
+        <!-- QUESTION AND OPTIONS SECTION -->
+        <div class="bg-white border border-slate-200 rounded-2xl p-5 md:p-6 shadow-sm space-y-6 relative">
+          <!-- Question Header Badges -->
+          <div class="flex items-center justify-between">
+            <div class="flex items-center space-x-2">
+              <span id="questionTopicBadge" class="bg-slate-100 text-slate-600 text-[10px] font-bold uppercase tracking-wider py-1 px-2.5 rounded">Topic</span>
+              <span id="questionDifficultyBadge" class="bg-emerald-100 text-emerald-800 text-[10px] font-extrabold uppercase tracking-wider py-1 px-2.5 rounded">Easy</span>
+            </div>
+            
+            <!-- Bookmark Button Toggle -->
+            <button onclick="toggleCurrentQuestionBookmark()" id="questionBookmarkBtn" class="p-1 px-2.5 rounded text-slate-400 hover:text-amber-500 hover:bg-amber-50 transition border border-transparent hover:border-amber-200 text-xs font-semibold inline-flex items-center gap-1">
+              <i data-lucide="star" class="w-4 h-4" id="bookmarkBtnIcon"></i>
+              Bookmark
+            </button>
+          </div>
+
+          <!-- Question Content -->
+          <div class="space-y-3">
+            <div class="text-xs text-slate-400 font-mono tracking-wider" id="questionNumberIndicator">QUESTION #1</div>
+            <p id="quizQuestionText" class="text-slate-800 font-semibold text-base leading-relaxed md:text-lg">
+              Dynamic synthesized question will render here...
+            </p>
+          </div>
+
+          <!-- OPTIONS GRID -->
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-3.5 mt-4" id="quizOptionsGrid">
+            <!-- Handled by active renderer -->
+          </div>
+        </div>
+
+        <!-- CONTROL NAVIGATION ROWS -->
+        <div class="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 pt-2">
+          <div class="flex items-center justify-between w-full sm:w-auto gap-2">
+            <button onclick="goToPrevQuestion()" id="quizPrevBtn" class="flex-1 sm:flex-initial flex items-center justify-center gap-1.5 text-slate-600 hover:text-indigo-600 bg-white border border-slate-200 shadow-xs px-4 py-2.5 rounded-xl text-xs font-bold transition">
+              <i data-lucide="chevron-left" class="w-4 h-4"></i>
+              Prev
+            </button>
+            
+            <button onclick="goToNextQuestion()" id="quizNextBtn" class="flex-1 sm:flex-initial flex items-center justify-center gap-1.5 bg-brand-500 hover:bg-brand-600 text-white px-4 py-2.5 rounded-xl text-xs font-bold shadow-sm transition">
+              Next
+              <i data-lucide="chevron-right" class="w-4 h-4"></i>
+            </button>
+          </div>
+
+          <!-- QUESTION QUICK DIAL DOT INDICATORS -->
+          <div id="quickNavigatorDots" class="hidden sm:flex flex-wrap items-center justify-center gap-1.5 max-w-[50%] overflow-x-auto p-1 custom-scrollbar">
+            <!-- Rendered by JS -->
+          </div>
+
+          <div class="w-full sm:w-auto">
+            <button onclick="submitQuiz()" class="w-full sm:w-auto inline-flex items-center justify-center gap-1.5 px-4 py-2.5 bg-rose-500 hover:bg-rose-600 text-white rounded-xl text-xs font-bold shadow-sm transition">
+              <i data-lucide="check-square" class="w-4 h-4"></i>
+              Submit Quiz
+            </button>
+          </div>
+        </div>
+      </section>
+
+      <!-- ======================================= -->
+      <!-- SCREEN 4: RESULTS & OUTCOMES            -->
+      <!-- ======================================= -->
+      <section id="screen-4" class="fade-in hidden space-y-6">
+        
+        <!-- SUMMARY SCORE HERO CARD -->
+        <div class="bg-white border border-slate-200 rounded-2xl overflow-hidden shadow-sm">
+          <div class="bg-gradient-to-r from-brand-500 to-indigo-800 text-white text-center p-6 md:p-8 space-y-4">
+            <div class="text-xs font-extrabold uppercase tracking-widest text-brand-100" id="resultsHeaderPath">Mathematics / Profit and Loss</div>
+            <h2 class="text-xl md:text-2xl font-extrabold">Assessment Diagnostic Finished!</h2>
+            
+            <div class="flex flex-col md:flex-row items-center justify-center gap-6 py-4">
+              <!-- Score big visual circle -->
+              <div class="relative w-32 h-32 rounded-full border-4 border-white/20 flex flex-col items-center justify-center bg-white/5 shadow-inner" id="resultScoreCircleRing">
+                <span class="text-3xl md:text-4xl font-black" id="resultPercentage">0%</span>
+                <span class="text-[10px] text-slate-300 font-bold uppercase tracking-wide">Score</span>
+              </div>
+              
+              <div class="text-center md:text-left space-y-1 max-w-sm">
+                <h4 class="text-lg font-bold text-yellow-300" id="resultMotivationalTitle">Exemplary Effort!</h4>
+                <p class="text-xs text-brand-200 leading-relaxed" id="resultMotivationalMessage">
+                  Nice work finishing the simulation. Let's inspect your detailed answers to correct any gaps.
+                </p>
+                <div class="pt-2 text-[11px] text-slate-300 font-mono" id="resultDurationText">
+                  Time elapsed: 14 mins 23 secs / 15 mins
+                </div>
+                <div class="pt-1.5 flex items-center justify-center md:justify-start gap-1.5 text-xs">
+                  <span class="text-slate-300 font-medium font-mono text-[11px]">Difficulty:</span>
+                  <span id="resultDifficultyBadge" class="text-[10px] font-extrabold uppercase tracking-wider py-0.5 px-2.5 rounded">Easy</span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- SUMMARY SCORE METRIC SLOTS -->
+          <div class="grid grid-cols-2 sm:grid-cols-4 border-b border-slate-100">
+            <div class="p-4 text-center border-r border-b sm:border-b-0 border-slate-100">
+              <span class="text-xs text-slate-400 font-medium font-sans">Core Score</span>
+              <h3 class="text-xl font-extrabold text-slate-750 mt-1" id="resultScoreRatio">0 / 10</h3>
+            </div>
+            <div class="p-4 text-center border-b sm:border-r sm:border-b-0 border-slate-100">
+              <span class="text-xs text-slate-400 font-medium font-sans">Correct</span>
+              <h3 class="text-xl font-extrabold text-emerald-600 mt-1" id="resultCorrectCount">0</h3>
+            </div>
+            <div class="p-4 text-center border-r border-slate-100">
+              <span class="text-xs text-slate-400 font-medium font-sans">Wrong Answers</span>
+              <h3 class="text-xl font-extrabold text-rose-500 mt-1" id="resultWrongCount">0</h3>
+            </div>
+            <div class="p-4 text-center">
+              <span class="text-xs text-slate-400 font-medium font-sans">Not Attempted</span>
+              <h3 class="text-xl font-extrabold text-slate-500 mt-1" id="resultUnattemptedCount">0</h3>
+            </div>
+          </div>
+
+          <!-- PDF SOURCE REFERENCE TRACKER -->
+          <div id="resultPdfSourceRow" class="hidden px-6 py-3 bg-indigo-50 border-t border-indigo-100 flex items-center gap-3 text-xs">
+            <i data-lucide="file-text" class="w-4 h-4 text-indigo-500 flex-shrink-0"></i>
+            <div>
+              <span class="font-bold text-indigo-800">Source: </span>
+              <span id="resultPdfFilename" class="text-indigo-700 font-medium">document.pdf</span>
+              <span class="text-indigo-400 mx-1">•</span>
+              <span id="resultPdfPages" class="text-indigo-500">3 pages, ~1200 words</span>
+            </div>
+          </div>
+
+          <!-- SCORE ACTION FOOTER -->
+          <div class="bg-slate-50 px-6 py-4 flex flex-col sm:flex-row items-center justify-between gap-4">
+            <span class="text-xs text-slate-400 font-medium flex items-center gap-1">
+              <i data-lucide="shield-check" class="w-4 h-4 text-emerald-500"></i>
+              Answer key review and step-by-step explanations are annotated below.
+            </span>
+            <div class="flex items-center space-x-2.5">
+              <button onclick="retakeCurrentTopic()" class="text-xs bg-slate-200 hover:bg-slate-300 text-slate-700 py-2 px-4 rounded-xl font-bold transition">
+                Retake Same Topic
+              </button>
+              <button onclick="goToScreen(1)" class="text-xs bg-brand-500 hover:bg-brand-600 text-white py-2 px-4 rounded-xl font-bold transition">
+                Try New Topic
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <!-- REVIEW MODULE SECTION -->
+        <div class="space-y-4">
+          <div class="flex items-center justify-between">
+            <h3 class="text-sm font-extrabold text-slate-800 uppercase tracking-widest flex items-center gap-1.5">
+              <i data-lucide="clipboard-list" class="w-4 h-4 text-indigo-500"></i>
+              Itemized Review and Explanations
+            </h3>
+            
+            <div class="flex items-center space-x-2 text-xs">
+              <!-- Filter tabs -->
+              <button class="review-filter-btn px-2.5 py-1 rounded-md bg-slate-200 font-bold" onclick="filterReview('all')">All</button>
+              <button class="review-filter-btn px-2.5 py-1 rounded-md text-slate-500 hover:bg-slate-100" onclick="filterReview('wrong')">Wrong</button>
+              <button class="review-filter-btn px-2.5 py-1 rounded-md text-slate-500 hover:bg-slate-100" onclick="filterReview('bookmarked')">Bookmarked</button>
+            </div>
+          </div>
+
+          <!-- QUESTION LIST RENDER CONTAINER -->
+          <div class="space-y-4" id="resultsDetailedReviewContainer">
+            <!-- Filled dynamically by JS -->
+          </div>
+        </div>
+
+        <!-- SMALL FLOATING APP UTILITY CARD FOR SCREEN 4 -->
+        <div class="bg-gradient-to-r from-slate-900 to-[#1a237e] border border-blue-900 text-white rounded-xl p-4 shadow-lg flex flex-col sm:flex-row items-center justify-between gap-3.5 mt-8">
+          <div class="flex items-center space-x-3 text-center sm:text-left">
+            <span class="text-xl">🤖</span>
+            <div>
+              <h4 class="text-xs font-bold font-sans">Enjoy this quiz? Take it anywhere!</h4>
+              <p class="text-[10px] text-slate-300">Run mock aptitude questions offline on your android handset.</p>
+            </div>
+          </div>
+          <div class="flex items-center space-x-2 w-full sm:w-auto">
+            <button onclick="downloadAPK()" class="w-full sm:w-auto text-[11px] font-extrabold bg-[#00c853] hover:bg-[#00b24a] text-white px-3.5 py-2 rounded-lg transition shrink-0 uppercase tracking-widest flex items-center justify-center gap-1.5 apk-download-pulse">
+              <i data-lucide="download" class="w-3.5 h-3.5"></i> Download Android App
+            </button>
+            <button onclick="shareOnWhatsApp()" class="text-slate-300 hover:text-white p-2 border border-slate-700 hover:border-slate-500 rounded-lg transition" title="Share via WhatsApp">
+              <i data-lucide="share-2" class="w-4 h-4"></i>
+            </button>
+          </div>
+        </div>
+      </section>
+
+    </main>
+
+    <!-- FOOTER LICENSE TAG -->
+    <footer class="bg-white border-t border-slate-200 py-4 mt-8">
+      <div class="max-w-6xl mx-auto px-4 flex flex-col md:flex-row items-center justify-between gap-2.5 text-xs text-slate-400">
+        <div class="flex items-center space-x-1">
+          <span>Aptitude Quiz AI</span>
+          <span>&bull;</span>
+          <span>Adaptive generative mocks</span>
+        </div>
+        <div>
+          <span>Keyboard shortcuts: <kbd class="bg-slate-100 p-0.5 rounded border border-slate-200">1</kbd>-<kbd class="bg-slate-100 p-0.5 rounded border border-slate-200">4</kbd> (Pick) &bull; <kbd class="bg-slate-100 p-0.5 rounded border border-slate-200">Enter</kbd> (Next) &bull; <kbd class="bg-slate-100 p-0.5 rounded border border-slate-200">Esc</kbd> (Pause)</span>
+        </div>
+      </div>
+    </footer>
+
+    <!-- ======================================= -->
+    <!-- GLOBAL OVERLAY LIGHTBOX MODAL & DRUM    -->
+    <!-- ======================================= -->
+    
+    <!-- LOADING SPINNER OVERLAY -->
+    <div id="loadingOverlay" class="fixed inset-0 bg-slate-900/80 backdrop-blur-xs flex items-center justify-center p-4 z-50 hidden">
+      <div class="bg-white rounded-2xl max-w-md w-full p-6 text-center shadow-2xl border border-slate-100 space-y-6 fade-in">
+        <div class="flex justify-center relative">
+          <!-- Double circular rotation glow -->
+          <div class="w-16 h-16 rounded-full border-4 border-slate-100 border-t-brand-500 animate-spin"></div>
+          <div class="absolute inset-0 flex items-center justify-center">
+            <i data-lucide="sparkles" class="w-6 h-6 text-brand-500 animate-pulse"></i>
+          </div>
+        </div>
+
+        <div class="space-y-2">
+          <h3 class="text-base font-extrabold text-slate-800" id="loadingHeadline">Cooking Dynamic MCQ Mock...</h3>
+          <p class="text-xs text-slate-500 max-w-sm mx-auto" id="loadingTimerDescriptor">
+            Gemini AI is designing and validating standard aptitude items. This may take up to 20 seconds.
+          </p>
+        </div>
+
+        <!-- Dynamic Tip display -->
+        <div class="bg-slate-50 rounded-xl p-3 text-left border border-slate-100">
+          <div class="text-[10px] font-bold text-brand-500 uppercase tracking-widest flex items-center gap-1 mb-1">
+            <i data-lucide="lightbulb" class="w-3.5 h-3.5 text-yellow-500"></i>Did you know?
+          </div>
+          <p class="text-xs text-slate-600 leading-relaxed" id="dynamicTipBox">
+            Standard Aptitude questions test memory recall, critical thinking, conceptual precision, and rapid calculation performance.
+          </p>
+        </div>
+      </div>
+    </div>
+
+    <!-- ERROR & RETRY BANNER MODAL -->
+    <div id="errorOverlay" class="fixed inset-0 bg-slate-900/80 backdrop-blur-xs flex items-center justify-center p-4 z-50 hidden">
+      <div class="bg-white rounded-2xl max-w-md w-full p-6 shadow-2xl border border-red-100 space-y-4">
+        <div class="flex items-center space-x-3 text-red-600">
+          <div class="p-2 bg-red-100 rounded-lg">
+            <i data-lucide="alert-octagon" class="w-6 h-6"></i>
+          </div>
+          <h3 class="text-md font-extrabold">Synthesis Failure</h3>
+        </div>
+
+        <div class="text-xs text-slate-600 border border-slate-100 p-3 bg-slate-50 rounded-lg font-mono max-h-40 overflow-y-auto" id="errorConsole">
+          JSON Parser Exception OR Gemini API Key validation failure.
+        </div>
+
+        <p class="text-xs text-slate-500 leading-relaxed">
+          Please check that your Gemini API Key is active, properly copied, and that you have a functioning internet connection before trying again.
+        </p>
+
+        <!-- Dynamic inline key management -->
+        <div id="errorOverlayKeySection" class="hidden space-y-3 pt-3 border-t border-slate-100">
+          <span class="text-[10px] font-extrabold uppercase tracking-widest text-slate-400 flex items-center gap-1">
+            <i data-lucide="key" class="w-3.5 h-3.5 text-amber-500"></i>
+            Unlock Dedicated Unlimited Mode
+          </span>
+          <div class="p-3 bg-amber-500/10 rounded-xl border border-amber-500/20 space-y-2 text-left">
+            <label class="block">
+              <span class="text-[11px] font-bold text-slate-700 block mb-1 flex justify-between items-center">
+                Paste Your Gemini API Key
+                <a href="https://aistudio.google.com" target="_blank" class="text-[10px] text-brand-600 hover:underline inline-flex items-center gap-0.5" referrerPolicy="no-referrer">
+                  Get Free Key (100% Free) <i data-lucide="external-link" class="w-2.5 h-2.5"></i>
+                </a>
+              </span>
+              <div class="relative">
+                <input type="password" id="errorOverlayGeminiKey" placeholder="AI..." class="w-full bg-white border border-slate-200 rounded-lg text-xs py-2 pl-3 pr-8 focus:outline-none focus:border-amber-500 font-mono transition text-slate-800">
+                <button type="button" onclick="toggleErrorSettingsKeyVisibility()" class="absolute right-2 top-2 hover:bg-slate-50 p-1 rounded transition cursor-pointer" title="Toggle visibility">
+                  <i id="errorKeyEyeIcon" data-lucide="eye" class="w-4 h-4 text-slate-400"></i>
+                </button>
+              </div>
+            </label>
+            <div class="flex gap-2">
+              <button onclick="saveErrorOverlayGeminiKey()" class="flex-1 bg-amber-500 hover:bg-amber-600 text-white text-[11px] py-2 px-3 rounded-lg font-extrabold transition flex items-center justify-center gap-1 cursor-pointer">
+                <i data-lucide="check" class="w-3.5 h-3.5"></i> Save & Resume
+              </button>
+            </div>
+            <p class="text-[9.5px] text-slate-500 leading-normal">
+              By adding your own free key, you completely bypass the shared global rate limit and get instant, unlimited practice questions.
+            </p>
+          </div>
+        </div>
+        
+        <!-- Offline simulator option when rate limited -->
+        <div id="errorOverlayOfflineSection" class="hidden space-y-2 pt-3 border-t border-slate-100">
+          <span class="text-[10px] font-extrabold uppercase tracking-widest text-slate-400 flex items-center gap-1">
+            <i data-lucide="zap" class="w-3.5 h-3.5 text-indigo-500 animate-[bounce_1.5s_infinite]"></i>
+            Run Free Sandbox Offline Mode
+          </span>
+          <div class="p-3 bg-indigo-500/10 rounded-xl border border-indigo-500/20 text-left">
+            <p class="text-[10.5px] text-slate-600 leading-normal mb-2.5">
+              Don't let shared key limits slow you down! Bypass all network API blocks and play instantly using our pre-built high-quality <strong>Offline Simulator</strong>.
+            </p>
+            <button onclick="activateOfflineQuizAndPlay()" class="w-full bg-indigo-600 hover:bg-indigo-700 text-white text-xs py-2 px-3 rounded-lg font-extrabold transition flex items-center justify-center gap-1.5 cursor-pointer">
+              <i data-lucide="zap" class="w-3.5 h-3.5 text-yellow-300"></i>
+              Start Offline Practice Mode Now
+            </button>
+          </div>
+        </div>
+
+        <div class="flex space-x-2 pt-2">
+          <button onclick="closeErrorOverlay()" class="flex-1 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs py-2 rounded-xl font-bold font-medium transition">
+            Dismiss
+          </button>
+          <button id="errorRetryButton" class="flex-1 bg-red-500 hover:bg-red-600 text-white text-xs py-2 rounded-xl font-bold transition">
+            Retry Synthesis
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- PAUSE COUNTDOWN CHRONOS BOX -->
+    <div id="pauseOverlay" class="fixed inset-0 bg-slate-900/80 backdrop-blur-xs flex items-center justify-center p-4 z-50 hidden">
+      <div class="bg-white rounded-2xl max-w-xs w-full p-6 text-center space-y-4 shadow-2xl">
+        <div class="flex justify-center text-amber-500">
+          <div class="p-3 bg-amber-50 rounded-full">
+            <i data-lucide="pause-circle" class="w-10 h-10"></i>
+          </div>
+        </div>
+
+        <div>
+          <h3 class="text-base font-extrabold text-slate-800">Quiz Paused</h3>
+          <p class="text-xs text-slate-500 mt-1">
+            Timer represents silent tracking. Options selection is locked until resumed.
+          </p>
+        </div>
+
+        <button onclick="resumeQuizTimer()" class="w-full bg-brand-500 hover:bg-brand-600 text-white font-bold py-2 px-4 rounded-xl text-xs transition flex items-center justify-center gap-1">
+          <i data-lucide="play" class="w-4 h-4"></i>
+          Resume Session
+        </button>
+      </div>
+    </div>
+
+    <!-- KEYBOARD SHORTCUT HELPER LIGHTBOX MODAL -->
+    <div id="shortcutModal" class="fixed inset-0 bg-slate-900/80 backdrop-blur-xs flex items-center justify-center p-4 z-50 hidden">
+      <div class="bg-white rounded-2xl max-w-sm w-full p-6 shadow-2xl space-y-4">
+        <div class="flex items-center justify-between border-b border-slate-100 pb-3">
+          <h3 class="text-sm font-bold flex items-center gap-1.5 text-slate-800">
+            <i data-lucide="keyboard" class="w-5 h-5 text-indigo-500"></i>
+            Keyboard Shortcuts Console
+          </h3>
+          <button onclick="toggleShortcutModal()" class="p-1 hover:bg-slate-100 rounded text-slate-400">
+            <i data-lucide="x" class="w-4 h-4"></i>
+          </button>
+        </div>
+
+        <div class="space-y-2.5 text-xs">
+          <div class="flex items-center justify-between">
+            <span class="text-slate-500">Pick Option A / B / C / D</span>
+            <span class="font-mono bg-slate-100 px-2 py-0.5 rounded border border-slate-200 text-slate-700 font-bold text-[10px]">1 / 2 / 3 / 4</span>
+          </div>
+          <div class="flex items-center justify-between">
+            <span class="text-slate-500">Advance to Next / Submit current</span>
+            <span class="font-mono bg-slate-100 px-2 py-0.5 rounded border border-slate-200 text-slate-700 font-bold text-[10px]">Enter</span>
+          </div>
+          <div class="flex items-center justify-between">
+            <span class="text-slate-500">Go back to Prev</span>
+            <span class="font-mono bg-slate-100 px-2 py-0.5 rounded border border-slate-200 text-slate-700 font-bold text-[10px]">P</span>
+          </div>
+          <div class="flex items-center justify-between">
+            <span class="text-slate-500">Bookmark Toggle</span>
+            <span class="font-mono bg-slate-100 px-2 py-0.5 rounded border border-slate-200 text-slate-700 font-bold text-[10px]">B</span>
+          </div>
+          <div class="flex items-center justify-between">
+            <span class="text-slate-500">Pause / Resume Quiz</span>
+            <span class="font-mono bg-slate-100 px-2 py-0.5 rounded border border-slate-200 text-slate-700 font-bold text-[10px]">Esc</span>
+          </div>
+        </div>
+
+        <button onclick="toggleShortcutModal()" class="w-full bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs py-2 rounded-xl font-bold transition">
+          Close Guide
+        </button>
+      </div>
+    </div>
+
+    <!-- CUSTOM DIALOG MODAL (CONFIRM/ALERT GATE) -->
+    <div id="customDialogOverlay" class="fixed inset-0 bg-slate-900/80 backdrop-blur-xs flex items-center justify-center p-4 z-50 hidden">
+      <div class="bg-white rounded-2xl max-w-md w-full p-6 shadow-2xl border border-slate-100 space-y-4 fade-in">
+        <div class="flex items-center space-x-3 text-brand-600">
+          <div class="p-2 bg-brand-50 rounded-lg" id="customDialogIconContainer">
+            <i data-lucide="help-circle" class="w-6 h-6 text-brand-500"></i>
+          </div>
+          <h3 class="text-md font-extrabold text-slate-800" id="customDialogTitle">Are you sure?</h3>
+        </div>
+
+        <p class="text-xs text-slate-600 leading-relaxed" id="customDialogMessage">
+          Detailed notice message text is inserted here.
+        </p>
+
+        <div class="flex space-x-2 pt-2">
+          <button id="customDialogCancelBtn" class="flex-1 bg-slate-150 hover:bg-slate-200 text-slate-700 text-xs py-2.5 rounded-xl font-bold transition">
+            Cancel
+          </button>
+          <button id="customDialogConfirmBtn" class="flex-1 bg-brand-500 hover:bg-brand-600 text-white text-xs py-2.5 rounded-xl font-bold transition">
+            Confirm
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- APK INSTALLATION PROMPT MODAL -->
+    <div id="apkInstallModal" class="fixed inset-0 bg-slate-900/80 backdrop-blur-xs flex items-center justify-center p-4 z-50 hidden">
+      <div class="bg-white rounded-2xl max-w-md w-full p-6 shadow-2xl border border-slate-100 space-y-4 fade-in">
+        <div class="flex items-center space-x-3 text-emerald-600">
+          <div class="p-2.5 bg-emerald-50 rounded-xl">
+            <i data-lucide="smartphone" class="w-6 h-6 text-emerald-600 animate-bounce"></i>
+          </div>
+          <div>
+            <h3 class="text-base font-extrabold text-slate-800">How to Install APK</h3>
+            <p class="text-[11px] text-slate-400 font-medium">Follow these security steps on your device</p>
+          </div>
+        </div>
+
+        <div class="space-y-2.5 my-3">
+          <div class="flex items-start gap-2.5 p-2 bg-slate-50 rounded-xl border border-slate-100">
+            <span class="w-5 h-5 flex-shrink-0 bg-emerald-100 text-emerald-750 text-xs font-bold rounded-full flex items-center justify-center font-sans">1</span>
+            <p class="text-[11px] text-slate-600 leading-relaxed"><strong class="text-slate-800">Tap "Got it, Download Now"</strong> to begin downloading the APK file formatted for Android devices.</p>
+          </div>
+          <div class="flex items-start gap-2.5 p-2 bg-slate-50 rounded-xl border border-slate-100">
+            <span class="w-5 h-5 flex-shrink-0 bg-emerald-100 text-emerald-750 text-xs font-bold rounded-full flex items-center justify-center font-sans">2</span>
+            <p class="text-[11px] text-slate-600 leading-relaxed"><strong class="text-slate-800">Open your Downloads folder</strong> once the download finishes successfully.</p>
+          </div>
+          <div class="flex items-start gap-2.5 p-2 bg-slate-50 rounded-xl border border-slate-100">
+            <span class="w-5 h-5 flex-shrink-0 bg-emerald-100 text-emerald-750 text-xs font-bold rounded-full flex items-center justify-center font-sans">3</span>
+            <p class="text-[11px] text-slate-600 leading-relaxed"><strong class="text-slate-800">Tap the downloaded .apk file</strong> to kickstart the system installer package process.</p>
+          </div>
+          <div class="flex items-start gap-2.5 p-2 bg-slate-50 rounded-xl border border-slate-100">
+            <span class="w-5 h-5 flex-shrink-0 bg-emerald-100 text-emerald-750 text-xs font-bold rounded-full flex items-center justify-center font-sans">4</span>
+            <p class="text-[11px] text-slate-600 leading-relaxed">If prompted, enable <strong class="text-slate-800">"Install from unknown sources"</strong> in your browser or system Security Settings.</p>
+          </div>
+          <div class="flex items-start gap-2.5 p-2 bg-slate-50 rounded-xl border border-slate-100">
+            <span class="w-5 h-5 flex-shrink-0 bg-emerald-100 text-emerald-750 text-xs font-bold rounded-full flex items-center justify-center font-sans">5</span>
+            <p class="text-[11px] text-slate-600 leading-relaxed"><strong class="text-slate-800">Tap Install</strong> to complete the process and enjoy learning on the go!</p>
+          </div>
+        </div>
+
+        <div class="flex space-x-2.5 pt-3 border-t border-slate-100">
+          <button onclick="closeApkInstallModal()" class="flex-grow-0 w-1/3 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs py-2.5 rounded-xl font-bold transition">
+            Cancel
+          </button>
+          <button onclick="confirmApkDownloadNow()" class="flex-grow w-2/3 bg-emerald-600 hover:bg-emerald-700 text-white text-xs py-2.5 rounded-xl font-bold transition flex items-center justify-center gap-1.5 shadow-md">
+            Got it, Download Now
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- PROFILE & HISTORY OVERLAY DRAWER SIDEBAR -->
+    <div id="historySidebar" class="fixed inset-0 z-50 hidden">
+      <!-- Backdrop -->
+      <div class="absolute inset-0 bg-slate-900/50 backdrop-blur-xs transition-opacity" onclick="closeHistorySidebar()"></div>
+      
+      <!-- Drawer contents -->
+      <div class="absolute right-0 top-0 bottom-0 max-w-sm w-full bg-white shadow-2xl border-l border-slate-100 p-5 flex flex-col justify-between">
+        
+        <!-- Drawer Header -->
+        <div class="space-y-4">
+          <div class="flex items-center justify-between border-b border-slate-100 pb-3">
+            <h3 class="text-sm font-extrabold uppercase tracking-wider text-slate-800 flex items-center gap-1.5">
+              <i data-lucide="history" class="w-4 h-4 text-emerald-500"></i>
+              Assessment Performance Logs
+            </h3>
+            <button onclick="closeHistorySidebar()" class="p-1 hover:bg-slate-100 rounded text-slate-500">
+              <i data-lucide="x" class="w-4 h-4"></i>
+            </button>
+          </div>
+
+          <!-- History Item Content -->
+          <div id="historyLogsList" class="space-y-3 max-h-[60vh] overflow-y-auto pr-1 custom-scrollbar">
+            <!-- Filled dynamically by JS -->
+          </div>
+        </div>
+
+        <!-- Drawer Footer actions -->
+        <div class="border-t border-slate-100 pt-4 space-y-2">
+          <button onclick="clearHistoryLogs()" class="w-full text-xs text-rose-500 hover:text-rose-600 bg-rose-50 hover:bg-rose-100 py-2.5 rounded-xl font-bold transition flex items-center justify-center gap-1">
+            <i data-lucide="trash-2" class="w-4 h-4"></i>
+            Reset All Logs
+          </button>
+          <button onclick="closeHistorySidebar()" class="w-full text-xs text-slate-500 bg-slate-100 hover:bg-slate-200 py-2.5 rounded-xl font-bold transition text-center">
+            Close Sidebar
+          </button>
+        </div>
+
+      </div>
+    </div>
+
+    <!-- SETTINGS OVERLAY DRAWER SIDEBAR -->
+    <div id="settingsSidebar" class="fixed inset-0 z-50 hidden">
+      <!-- Backdrop -->
+      <div class="absolute inset-0 bg-slate-900/50 backdrop-blur-xs transition-opacity" onclick="closeSettingsSidebar()"></div>
+      
+      <!-- Drawer contents -->
+      <div class="absolute right-0 top-0 bottom-0 max-w-sm w-full bg-white shadow-2xl border-l border-slate-100 p-5 flex flex-col justify-between overflow-y-auto">
+        
+        <div class="space-y-5">
+          <!-- Header -->
+          <div class="flex items-center justify-between border-b border-slate-105 pb-3">
+            <h3 class="text-sm font-extrabold uppercase tracking-wider text-slate-800 flex items-center gap-1.5">
+              <i data-lucide="settings" class="w-4.5 h-4.5 text-brand-500 animate-[spin_5s_linear_infinite]"></i>
+              Settings & Preferences
+            </h3>
+            <button onclick="closeSettingsSidebar()" class="p-1 hover:bg-slate-150 rounded text-slate-500">
+              <i data-lucide="x" class="w-4 h-4"></i>
+            </button>
+          </div>
+
+          <!-- Preferences -->
+          <div class="space-y-3">
+            <span class="text-[10px] font-extrabold uppercase tracking-widest text-slate-400">App Preferences</span>
+            
+            <div class="flex items-center justify-between p-2.5 bg-slate-50 rounded-xl border border-slate-100">
+              <div class="min-w-0 pr-2">
+                <span class="text-xs font-bold text-slate-700 block">Remember last selected topic</span>
+                <span class="text-[9.5px] text-slate-400 block break-words">Auto-save topic selection for your next visit.</span>
+              </div>
+              <label class="relative inline-flex items-center cursor-pointer select-none flex-shrink-0">
+                <input type="checkbox" id="prefRememberTopic" onchange="togglePrefRememberTopic()" class="sr-only peer" checked>
+                <div class="w-9 h-5 bg-slate-300 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-brand-500"></div>
+              </label>
+            </div>
+
+            <div class="flex items-center justify-between p-2.5 bg-slate-50 rounded-xl border border-slate-100">
+              <div class="min-w-0 pr-2">
+                <span class="text-xs font-bold text-slate-700 block">Show prompt explanations</span>
+                <span class="text-[9.5px] text-slate-400 block break-words">Annotate solution explanations after pick choices.</span>
+              </div>
+              <label class="relative inline-flex items-center cursor-pointer select-none flex-shrink-0">
+                <input type="checkbox" id="prefShowExplanations" onchange="togglePrefShowExplanations()" class="sr-only peer">
+                <div class="w-9 h-5 bg-slate-300 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-brand-500"></div>
+              </label>
+            </div>
+
+            <div class="flex items-center justify-between p-2.5 bg-slate-50 rounded-xl border border-slate-100">
+              <div class="min-w-0 pr-2">
+                <span class="text-xs font-bold text-slate-700 block">Dark mode theme</span>
+                <span class="text-[9.5px] text-slate-400 block break-words">Toggles a custom slate deep dark aesthetic.</span>
+              </div>
+              <label class="relative inline-flex items-center cursor-pointer select-none flex-shrink-0">
+                <input type="checkbox" id="prefDarkMode" onchange="togglePrefDarkMode()" class="sr-only peer">
+                <div class="w-9 h-5 bg-slate-300 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-brand-500"></div>
+              </label>
+            </div>
+          </div>
+
+          <!-- Custom Credentials -->
+          <div class="space-y-3 pt-3 border-t border-slate-100">
+            <span class="text-[10px] font-extrabold uppercase tracking-widest text-slate-400 flex items-center gap-1">
+              <i data-lucide="key" class="w-3 h-3 text-brand-500"></i>
+              Custom API Credentials
+            </span>
+            <div class="p-3 bg-brand-50/15 rounded-xl border border-brand-500/10 space-y-2">
+              <label class="block">
+                <span class="text-[11px] font-bold text-slate-700 block mb-1 flex justify-between items-center">
+                  Google Gemini API Key
+                  <a href="https://aistudio.google.com" target="_blank" class="text-[9.5px] text-brand-600 hover:underline flex items-center gap-0.5" referrerPolicy="no-referrer">
+                    Get Free Key <i data-lucide="external-link" class="w-2.5 h-2.5"></i>
+                  </a>
+                </span>
+                <div class="relative">
+                  <input type="password" id="settingsGeminiKey" placeholder="Enter custom AI Key..." class="w-full bg-white border border-slate-200 rounded-lg text-xs py-2 pl-3 pr-8 focus:outline-none focus:border-brand-500 font-mono transition">
+                  <button type="button" onclick="toggleSettingsKeyVisibility()" class="absolute right-2 top-2 hover:bg-slate-50 transition cursor-pointer" title="Toggle visibility">
+                    <i id="settingsKeyEyeIcon" data-lucide="eye" class="w-4 h-4 text-slate-400"></i>
+                  </button>
+                </div>
+              </label>
+              
+              <div class="flex gap-2 text-[10px] pt-1">
+                <button onclick="saveCustomGeminiKey()" class="flex-1 bg-brand-500 hover:bg-brand-600 text-white py-1.5 px-3 rounded-lg font-bold transition flex items-center justify-center gap-1 cursor-pointer">
+                  <i data-lucide="save" class="w-3 h-3"></i> Save Key
+                </button>
+                <button onclick="clearCustomGeminiKey()" class="bg-slate-100 hover:bg-slate-200 text-slate-600 py-1.5 px-3 rounded-lg font-bold transition flex items-center justify-center gap-1 cursor-pointer">
+                  <i data-lucide="trash-2" class="w-3 h-3"></i> Clear
+                </button>
+              </div>
+              <p class="text-[9px] text-slate-400 leading-normal">
+                No monthly quota or rate limits when using a custom key! The key is saved safely in your own browser's local sandbox.
+              </p>
+            </div>
+          </div>
+        </div>
+
+        <!-- Foot -->
+        <div class="border-t border-slate-100 pt-4 mt-4">
+          <button onclick="closeSettingsSidebar()" class="w-full text-xs text-slate-500 bg-slate-100 hover:bg-slate-200 py-2.5 rounded-xl font-bold transition text-center">
+            Close Settings
+          </button>
+        </div>
+
+      </div>
+    </div>
+
+
+    <!-- ======================================= -->
+    <!-- APPLICATION STATE ENGINE SCRIPT         -->
+    <!-- ======================================= -->
+    <script>
+      // Accordion Categories Schema
+      const categories = [
+        {
+          id: "all_mix",
+          title: "All Mix Questions",
+          icon: "shuffle",
+          color: "sky",
+          isMix: true,
+          description: "An adaptive multi-disciplinary mix spanning numeric math, critical reasoning, and coding syntax."
+        },
+        {
+          id: "mathematics",
+          title: "Mathematics",
+          icon: "calculator",
+          color: "blue",
+          description: "Standard mathematical reasoning: speed arithmetic, proportions, matrices, interest math, and counting techniques.",
+          subtopics: [
+            "Mix", "Percentage", "Profit and Loss", "Simple Interest & Compound Interest",
+            "Ratio and Proportion", "Time and Work", "Time Speed and Distance", "Average",
+            "Age Problems", "Number System", "HCF & LCM", "Permutation and Combination",
+            "Probability", "Mensuration", "Multiplication", "Division"
+          ]
+        },
+        {
+          id: "logical_reasoning",
+          title: "Logical Reasoning",
+          icon: "brain-circuit",
+          color: "indigo",
+          description: "Deductive ability: alphabetic arrangements, codes, puzzles, syllogism matrices and visual relations.",
+          subtopics: [
+            "Mix", "Series (Number/Alphabet)", "Coding-Decoding", "Blood Relations",
+            "Direction Sense", "Seating Arrangement", "Syllogism", "Puzzles", "Odd One Out"
+          ]
+        },
+        {
+          id: "verbal_ability",
+          title: "Verbal Ability (English)",
+          icon: "languages",
+          color: "violet",
+          description: "Reading vocabulary proficiency: word substitutions, cloze fill-ins, phrase corrections, and comprehensions.",
+          subtopics: [
+            "Mix", "Synonyms and Antonyms", "Error Detection", "Sentence Correction",
+            "Reading Comprehension", "Fill in the Blanks", "One Word Substitution", "Vocabulary"
+          ]
+        },
+        {
+          id: "data_interpretation",
+          title: "Data Interpretation",
+          icon: "line-chart",
+          color: "amber",
+          description: "Data diagnostics: decoding trendlines, analytical charts, tabular summaries, and complex bar diagrams.",
+          subtopics: [
+            "Mix", "Tables", "Bar Graphs", "Pie Charts", "Line Graphs"
+          ]
+        },
+        {
+          id: "programming_questions",
+          title: "Programming Questions",
+          icon: "code",
+          color: "emerald",
+          description: "Comp-sci syntax and computer engineering theory: OOPs structure, networking, algorithm logic, and database schemas.",
+          subtopics: [
+            "Mix", "C Programming", "C++", "Java", "C#", "Python", "JavaScript", "HTML", "CSS",
+            "SQL", "DBMS", "Operating System", "Computer Networks", "Data Structures", "Algorithms",
+            "Object-Oriented Programming", "Software Engineering", "Web Technologies",
+            "Android Development", "ADO.NET", "ASP.NET", "Servlets & JSP", "Git & GitHub",
+            "SDLC (Software Development Life Cycle)"
+          ]
+        }
+      ];
+
+      // Educational tips to cycle during dynamic screen loading overlays
+      const educationalTips = [
+        "Simplify mathematical equations before diving into complex ratios.",
+        "Always sketch out directions on dry scratchpad when dealing with Blood Relations or Direction Sense questions.",
+        "In English Synonyms, try testing the words in basic sentences to feel their contextual tone.",
+        "In Coding-Decoding questions, map out alphabet coordinates (A=1, B=2 ... Z=26) to trace numerical progressions.",
+        "SDLC phases help software engineers deliver complex solutions sequentially. Read requirements before coding!",
+        "Data Interpretation is about speed. Compare percentages visually on bar charts to eliminate choices rapidly.",
+        "Permutations are about sequence order, whereas Combinations ignore layout structure completely.",
+        "Do not panic on Hard items! They provide standard clues within the body text. Read meticulously."
+      ];
+
+      // Globals
+      const GEMINI_API_KEY = "YOUR_GEMINI_KEY_HERE";
+      let currentScreen = 1;
+      let selectedCategory = null;
+      let selectedSubtopic = null;
+      let questionCount = null; // Step 1 chosen questions count
+      let chosenDifficulty = null; // Step 2 chosen difficulty
+      let quizQuestions = [];
+      let quizAnswers = {}; // Map of questionIndex to user selectedOptionIndex
+      let bookmarkedQuestions = {}; // Map of questionIndex to boolean
+      let currentQuestionIndex = 0;
+      let quizEngineMode = "ai"; // "ai" or "offline"
+      let mixSelectedCategories = ["mathematics", "logical_reasoning", "verbal_ability", "data_interpretation", "programming_questions"];
+      
+      // Timer Globals
+      let quizTimerInterval = null;
+      let totalSecondsLimit = 0;
+      let remainingSeconds = 0;
+      let isTimerPaused = false;
+      let timeTakenSec = 0;
+
+      // Android Direct Installer Helpers
+      const APK_DOWNLOAD_URL = "https://aptigenius-ai.vercel.app/public/AptitudeQuiz.apk";
+
+      function downloadAPK() {
+        const link = document.createElement('a');
+        link.href = APK_DOWNLOAD_URL;
+        link.download = "AptitudeQuiz.apk";
+        link.target = '_blank';
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+
+        const toast = document.createElement('div');
+        toast.innerHTML = `<span>⬇️</span><div><strong>Download Started!</strong><p>AptitudeQuiz.apk is downloading...</p></div>`;
+        toast.style.cssText = `position:fixed;bottom:24px;left:50%;transform:translateX(-50%);background:#1b5e20;color:white;padding:14px 24px;border-radius:12px;display:flex;align-items:center;gap:12px;font-size:15px;font-weight:500;z-index:99999;min-width:280px;animation:slideUp 0.3s ease;`;
+        document.body.appendChild(toast);
+
+        setTimeout(() => {
+          toast.remove();
+          const sheet = document.createElement('div');
+          sheet.innerHTML = `
+            <div style="position:fixed;bottom:0;left:0;right:0;background:white;border-radius:20px 20px 0 0;padding:24px;z-index:99998;box-shadow:0 -4px 30px rgba(0,0,0,0.15);animation:slideUp 0.4s ease;">
+              <div style="width:40px;height:4px;background:#ddd;border-radius:2px;margin:0 auto 20px;"></div>
+              <h3 style="margin:0 0 16px;font-size:17px;color:#1a237e;">📲 How to Install APK</h3>
+              <ol style="padding-left:20px;margin:0;line-height:2.2;font-size:14px;color:#333;">
+                <li>Open your <strong>Downloads</strong> folder</li>
+                <li>Tap <strong>AptitudeQuiz.apk</strong></li>
+                <li>Tap <strong>Install</strong> when prompted</li>
+                <li>If blocked: Settings → Security → Enable <strong>"Unknown Sources"</strong></li>
+                <li>Tap <strong>Install</strong> again — done! 🎉</li>
+              </ol>
+              <button onclick="this.closest('div').parentElement.remove()" style="margin-top:20px;width:100%;padding:14px;background:#1a237e;color:white;border:none;border-radius:10px;font-size:15px;font-weight:600;cursor:pointer;">Got it ✓</button>
+            </div>
+            <div onclick="this.parentElement.remove()" style="position:fixed;inset:0;background:rgba(0,0,0,0.4);z-index:99997;"></div>
+          `;
+          document.body.appendChild(sheet);
+        }, 4000);
+      }
+
+      function openApkInstallModal() {
+        const modal = document.getElementById("apkInstallModal");
+        if (modal) {
+          modal.classList.remove("hidden");
+        }
+      }
+
+      function closeApkInstallModal() {
+        const modal = document.getElementById("apkInstallModal");
+        if (modal) {
+          modal.classList.add("hidden");
+        }
+      }
+
+      function confirmApkDownloadNow() {
+        closeApkInstallModal();
+        window.open(APK_DOWNLOAD_URL, "_blank");
+      }
+
+      function shareOnWhatsApp() {
+        const waMessage = "🎯 Try this free Aptitude Quiz App!\nPractice online: https://aptigenius-ai.vercel.app\nDownload Android APK: https://aptigenius-ai.vercel.app/public/AptitudeQuiz.apk";
+        const url = "https://wa.me/?text=" + encodeURIComponent(waMessage);
+        window.open(url, "_blank");
+      }
+
+      // Initializer Boot
+      document.addEventListener("DOMContentLoaded", () => {
+        renderCategoriesAccordions();
+        renderQuickStats();
+        setupShortcutsListener();
+        setupPdfDragAndDrop();
+        updateAPIStatusBadge();
+
+        const isDark = localStorage.getItem("preferences_dark_mode") === "true";
+        applyDarkModeStyle(isDark);
+
+        const prefRemember = localStorage.getItem("preferences_remember_topic") !== "false";
+        if (prefRemember) {
+          const lastCat = localStorage.getItem("last_selected_category");
+          const lastSub = localStorage.getItem("last_selected_subtopic");
+          if (lastCat && lastSub) {
+            setTimeout(() => {
+              const foundCat = categories.find(c => c.id === lastCat);
+              if (foundCat) {
+                toggleCategoryAccordion(lastCat);
+                selectSubtopic(lastCat, lastSub);
+              }
+            }, 600);
+          }
+        }
+
+        refreshLucideIcons();
+      });
+
+      // Renders category accordions dynamically
+      function renderCategoriesAccordions() {
+        const container = document.getElementById("categoriesAccordionList");
+        container.innerHTML = "";
+
+        categories.forEach(category => {
+          const card = document.createElement("div");
+          card.id = `cat-${category.id}`;
+          card.className = "accordion-card bg-white border border-slate-200 rounded-xl transition-all duration-300 shadow-sm flex flex-col overflow-hidden";
+          
+          let headerHTML = "";
+          if (category.isMix) {
+            headerHTML = `
+              <div onclick="toggleCategoryAccordion('${category.id}')" class="p-4 flex items-center justify-between cursor-pointer hover:bg-slate-50 transition duration-150 select-none">
+                <div class="flex items-start space-x-3 min-w-0">
+                  <div class="p-2.5 md:p-3 rounded-lg bg-sky-500/10 text-sky-600 flex-shrink-0">
+                    <i data-lucide="${category.icon}" class="w-5 h-5 md:w-5.5 md:h-5.5"></i>
+                  </div>
+                  <div class="min-w-0">
+                    <h3 class="text-xs md:text-sm font-extrabold text-slate-800 truncate">${category.title}</h3>
+                    <p class="text-[11px] md:text-xs text-slate-400 mt-0.5 line-clamp-2 md:line-clamp-none">${category.description}</p>
+                  </div>
+                </div>
+                <div class="flex items-center space-x-2 flex-shrink-0 ml-2">
+                  <span class="hidden min-[450px]:inline-flex text-[10px] font-bold text-sky-600 bg-sky-50 px-2 md:px-2.5 py-1 rounded-md border border-sky-100 items-center gap-1 whitespace-nowrap">
+                    Select Subjects <i data-lucide="chevron-down" class="w-3 h-3 md:w-3.5 md:h-3.5"></i>
+                  </span>
+                  <div class="p-1 hover:bg-slate-100 rounded text-slate-400 transition" id="arrow-${category.id}">
+                    <i data-lucide="chevron-down" class="w-4.5 h-4.5 md:w-5 md:h-5"></i>
+                  </div>
+                </div>
+              </div>
+
+              <!-- COLLAPSIBLE MIX CONFIG PANEL -->
+              <div class="accordion-content bg-slate-50/50 border-t border-slate-100">
+                <div class="p-4 space-y-4">
+                  <div class="flex items-center justify-between">
+                    <span class="text-[10px] font-extrabold uppercase tracking-widest text-slate-400">Select Mix Topics:</span>
+                    <button onclick="toggleAllMixSubtopics(event)" class="text-[10.5px] font-bold text-brand-500 hover:text-brand-600 transition flex items-center gap-1 select-none">
+                      <i data-lucide="check-square" class="w-3.5 h-3.5"></i> Toggle All
+                    </button>
+                  </div>
+                  
+                  <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-2.5">
+                    <label class="flex items-center space-x-3 p-3 bg-white border border-slate-200 rounded-xl cursor-pointer hover:border-blue-500 hover:bg-slate-50/10 transition group">
+                      <input type="checkbox" id="mixCheck-mathematics" checked class="w-4 h-4 text-blue-600 border-slate-300 rounded focus:ring-blue-500 cursor-pointer">
+                      <div>
+                        <span class="text-xs font-bold text-slate-700 group-hover:text-slate-900 block">Mathematics</span>
+                        <span class="text-[10px] text-slate-400 block">Arithmetic & Reasoning</span>
+                      </div>
+                    </label>
+
+                    <label class="flex items-center space-x-3 p-3 bg-white border border-slate-200 rounded-xl cursor-pointer hover:border-indigo-500 hover:bg-slate-50/10 transition group">
+                      <input type="checkbox" id="mixCheck-logical_reasoning" checked class="w-4 h-4 text-indigo-600 border-slate-300 rounded focus:ring-indigo-500 cursor-pointer">
+                      <div>
+                        <span class="text-xs font-bold text-slate-700 group-hover:text-slate-900 block">Logical Reasoning</span>
+                        <span class="text-[10px] text-slate-400 block">Puzzles & Deduction</span>
+                      </div>
+                    </label>
+
+                    <label class="flex items-center space-x-3 p-3 bg-white border border-slate-200 rounded-xl cursor-pointer hover:border-violet-500 hover:bg-slate-50/10 transition group">
+                      <input type="checkbox" id="mixCheck-verbal_ability" checked class="w-4 h-4 text-violet-600 border-slate-300 rounded focus:ring-violet-500 cursor-pointer">
+                      <div>
+                        <span class="text-xs font-bold text-slate-700 group-hover:text-slate-900 block">Verbal English</span>
+                        <span class="text-[10px] text-slate-400 block">Vocab & Grammar</span>
+                      </div>
+                    </label>
+
+                    <label class="flex items-center space-x-3 p-3 bg-white border border-slate-200 rounded-xl cursor-pointer hover:border-amber-500 hover:bg-slate-50/10 transition group">
+                      <input type="checkbox" id="mixCheck-data_interpretation" checked class="w-4 h-4 text-amber-600 border-slate-300 rounded focus:ring-amber-500 cursor-pointer">
+                      <div>
+                        <span class="text-xs font-bold text-slate-700 group-hover:text-slate-900 block">Data Interpretation</span>
+                        <span class="text-[10px] text-slate-400 block">Charts & Diagnostics</span>
+                      </div>
+                    </label>
+
+                    <label class="flex items-center space-x-3 p-3 bg-white border border-slate-200 rounded-xl cursor-pointer hover:border-emerald-500 hover:bg-slate-50/10 transition group">
+                      <input type="checkbox" id="mixCheck-programming_questions" checked class="w-4 h-4 text-emerald-600 border-slate-300 rounded focus:ring-emerald-500 cursor-pointer">
+                      <div>
+                        <span class="text-xs font-bold text-slate-700 group-hover:text-slate-900 block">Programming Questions</span>
+                        <span class="text-[10px] text-slate-400 block">CS Core & Algorithms</span>
+                      </div>
+                    </label>
+                  </div>
+
+                  <div class="pt-1.55">
+                    <button onclick="confirmSelectedMix()" class="w-full bg-sky-500 hover:bg-sky-600 text-white font-extrabold text-xs py-3 rounded-xl shadow-xs transition flex items-center justify-center gap-1.5 uppercase tracking-wider">
+                      <i data-lucide="play" class="w-4 h-4"></i> Continue with Selected Mix
+                    </button>
+                  </div>
+                </div>
+              </div>
+            `;
+          } else {
+            // Standard category list containing subtopics
+            headerHTML = `
+              <div onclick="toggleCategoryAccordion('${category.id}')" class="p-4 flex items-center justify-between cursor-pointer hover:bg-slate-50 transition duration-150 select-none">
+                <div class="flex items-start space-x-3 min-w-0">
+                  <div class="p-2.5 md:p-3 rounded-lg bg-${category.color}-500/10 text-${category.color}-600 flex-shrink-0">
+                    <i data-lucide="${category.icon}" class="w-5 h-5 md:w-5.3 md:h-5.3"></i>
+                  </div>
+                  <div class="min-w-0">
+                    <h3 class="text-xs md:text-sm font-extrabold text-slate-800 truncate">${category.title}</h3>
+                    <p class="text-[11px] md:text-xs text-slate-400 mt-0.5 line-clamp-2 md:line-clamp-none">${category.description}</p>
+                  </div>
+                </div>
+                <div class="flex items-center space-x-2 flex-shrink-0 ml-2">
+                  <span class="hidden min-[450px]:inline-flex text-[10px] font-bold text-slate-400 bg-slate-50 px-2 md:px-2.5 py-1 rounded-md border border-slate-100 whitespace-nowrap">
+                    ${category.subtopics.length} Sections
+                  </span>
+                  <div class="p-1 hover:bg-slate-100 rounded text-slate-400 transition" id="arrow-${category.id}">
+                    <i data-lucide="chevron-down" class="w-4.5 h-4.5 md:w-5 md:h-5"></i>
+                  </div>
+                </div>
+              </div>
+
+              <!-- COLLAPSIBLE SECTION -->
+              <div class="accordion-content bg-slate-50/50 border-t border-slate-100">
+                <div class="p-4 space-y-3">
+                  <span class="text-[10px] font-extrabold uppercase tracking-widest text-slate-400 block mb-1">Select Subtopic:</span>
+                  <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-2">
+                    ${category.subtopics.map(subtopic => `
+                      <button onclick="selectSubtopic('${category.id}', '${subtopic}')" class="text-left text-xs bg-white border border-slate-200 hover:border-${category.color}-500 hover:bg-brand-50 hover:text-slate-900 text-slate-600 px-3 py-2.5 rounded-lg font-medium transition shadow-xs">
+                        &bull; ${subtopic}
+                      </button>
+                    `).join('')}
+                  </div>
+                </div>
+              </div>
+            `;
+          }
+          
+          card.innerHTML = headerHTML;
+          container.appendChild(card);
+        });
+
+        // Trigger tailwind parser support (some templates might hide custom dynamically typed colors, so we assign safe lookups)
+        const dummyLoader = document.createElement("div");
+        dummyLoader.className = "bg-blue-500/10 text-blue-600 hover:border-blue-500 border-indigo-500 bg-indigo-500/10 text-indigo-600 border-violet-500 bg-violet-500/10 text-violet-600 border-amber-500 bg-amber-500/10 text-amber-600 border-emerald-500 bg-emerald-500/10 text-emerald-600 hover:bg-emerald-50 hover:border-emerald-500 hover:bg-blue-50 hover:border-blue-500 hover:bg-indigo-50 hover:border-indigo-500 hover:bg-violet-50 hover:border-violet-500 hover:bg-amber-50 hover:border-amber-500";
+        document.body.appendChild(dummyLoader);
+        dummyLoader.style.display = "none";
+      }
+
+      // Toggle Accordion Collapse state
+      function toggleCategoryAccordion(categoryId) {
+        const cards = document.querySelectorAll('.accordion-card');
+        cards.forEach(card => {
+          if (card.id === `cat-${categoryId}`) {
+            const isCurrentlyOpen = card.classList.contains('open');
+            card.classList.toggle('open');
+            const arrowIcon = card.querySelector(`#arrow-${categoryId} i`);
+            if (arrowIcon) {
+              arrowIcon.style.transform = isCurrentlyOpen ? 'rotate(0deg)' : 'rotate(180deg)';
+              arrowIcon.style.transition = 'transform 0.2s ease';
+            }
+          } else {
+            card.classList.remove('open');
+            const otherArrow = card.querySelector(`[id^="arrow-"] i`);
+            if (otherArrow) {
+              otherArrow.style.transform = 'rotate(0deg)';
+            }
+          }
+        });
+        refreshLucideIcons();
+      }
+
+      // Toggles all checkboxes in the Mix panel
+      function toggleAllMixSubtopics(e) {
+        if (e) {
+          e.preventDefault();
+          e.stopPropagation();
+        }
+        const checkboxIds = [
+          "mixCheck-mathematics",
+          "mixCheck-logical_reasoning",
+          "mixCheck-verbal_ability",
+          "mixCheck-data_interpretation",
+          "mixCheck-programming_questions"
+        ];
+        
+        const anyUnchecked = checkboxIds.some(id => {
+          const el = document.getElementById(id);
+          return el ? !el.checked : false;
+        });
+
+        checkboxIds.forEach(id => {
+          const el = document.getElementById(id);
+          if (el) el.checked = anyUnchecked;
+        });
+      }
+
+      // Validates and continues with custom Mix
+      function confirmSelectedMix() {
+        const checkboxIds = [
+          { id: "mixCheck-mathematics", key: "mathematics" },
+          { id: "mixCheck-logical_reasoning", key: "logical_reasoning" },
+          { id: "mixCheck-verbal_ability", key: "verbal_ability" },
+          { id: "mixCheck-data_interpretation", key: "data_interpretation" },
+          { id: "mixCheck-programming_questions", key: "programming_questions" }
+        ];
+
+        mixSelectedCategories = [];
+        checkboxIds.forEach(item => {
+          const el = document.getElementById(item.id);
+          if (el && el.checked) {
+            mixSelectedCategories.push(item.key);
+          }
+        });
+
+        if (mixSelectedCategories.length === 0) {
+          showCustomConfirm({
+            title: "No Topics Selected",
+            message: "Please select at least one topic (like Mathematics or Logical Reasoning) to generate your custom Mix.",
+            confirmText: "Ok",
+            mode: "alert",
+            icon: "alert-circle",
+            iconColorClass: "text-amber-500",
+            iconBgClass: "bg-amber-50"
+          });
+          return;
+        }
+
+        selectedCategory = categories.find(c => c.isMix);
+        
+        const chosenCategoryTitles = categories
+          .filter(c => !c.isMix && mixSelectedCategories.includes(c.id))
+          .map(c => c.title);
+          
+        selectedSubtopic = chosenCategoryTitles.length === 5 
+          ? "All Mix Questions" 
+          : "Mix of (" + chosenCategoryTitles.join(", ") + ")";
+          
+        goToScreen(2);
+      }
+
+      // Category Selection handler
+      function selectSubtopic(categoryId, subtopicName) {
+        selectedCategory = categories.find(c => c.id === categoryId);
+        selectedSubtopic = subtopicName;
+        goToScreen(2);
+      }
+
+      // Screen router (1, 2, 3, 4)
+      function goToScreen(screenNumber) {
+        currentScreen = screenNumber;
+        document.getElementById("screen-1").classList.add("hidden");
+        document.getElementById("screen-2").classList.add("hidden");
+        document.getElementById("screen-3").classList.add("hidden");
+        document.getElementById("screen-4").classList.add("hidden");
+
+        const targetScreen = document.getElementById(`screen-${screenNumber}`);
+        if (targetScreen) {
+          targetScreen.classList.remove("hidden");
+        }
+
+        // Screen On-Enter side effects
+        if (screenNumber === 1) {
+          selectedCategory = null;
+          selectedSubtopic = null;
+          resetQuizSetupState();
+          renderQuickStats();
+        } else if (screenNumber === 2) {
+          renderSetupSummary();
+        } else if (screenNumber === 4) {
+          renderResultsSummaryDashboard();
+        }
+        
+        refreshLucideIcons();
+      }
+
+      // Screen 2 setup values setter
+      function renderSetupSummary() {
+        if (!selectedCategory) return;
+        
+        const categoryTitle = typeof selectedCategory === "object" 
+          ? selectedCategory.title 
+          : "PDF Study Material";
+        const categoryDesc = typeof selectedCategory === "object"
+          ? selectedCategory.description
+          : "Questions generated from your uploaded PDF.";
+
+        document.getElementById("setupCategoryBadge").textContent = categoryTitle;
+        document.getElementById("setupSubtopicTitle").textContent = selectedSubtopic;
+        document.getElementById("setupTopicDescription").textContent = categoryDesc;
+        resetQuizSetupState();
+      }
+
+      // Target question count config picker
+      function selectQuestionCount(count) {
+        questionCount = count;
+        
+        resetQuestionSelectionButtonsState();
+        
+        // Highlight active btn
+        const activeBtn = document.getElementById(`qBtn-${count}`);
+        if (activeBtn) {
+          activeBtn.classList.remove("bg-white", "border-slate-200", "text-slate-700");
+          activeBtn.classList.add("bg-brand-50", "border-brand-500", "text-brand-500", "ring-2", "ring-brand-500/20");
+        }
+
+        // Render estimated timer calculation text inside note
+        const minutes = count * 1.5;
+        document.getElementById("setupTimerNote").innerHTML = `Timer = 1.5 minutes per question (e.g., ${count} questions = ${minutes} minutes)`;
+
+        // Show Step 2 container
+        const step2Container = document.getElementById("step2Container");
+        if (step2Container) {
+          step2Container.classList.remove("hidden");
+        }
+
+        updateSetupSummaryAndValidation();
+        refreshLucideIcons();
+      }
+
+      function selectDifficulty(diff) {
+        chosenDifficulty = diff;
+        
+        resetDifficultySelectionButtonsState();
+        
+        // Highlight active difficulty card with border color based on choice
+        const easyCard = document.getElementById("diffBtn-easy");
+        const medCard = document.getElementById("diffBtn-medium");
+        const hardCard = document.getElementById("diffBtn-hard");
+
+        if (diff.toLowerCase() === "easy") {
+          easyCard.classList.remove("border-slate-200", "bg-white");
+          easyCard.classList.add("border-emerald-500", "bg-emerald-50/20", "ring-2", "ring-emerald-500/10");
+        } else if (diff.toLowerCase() === "medium") {
+          medCard.classList.remove("border-slate-200", "bg-white");
+          medCard.classList.add("border-amber-500", "bg-amber-50/20", "ring-2", "ring-amber-500/10");
+        } else if (diff.toLowerCase() === "hard") {
+          hardCard.classList.remove("border-slate-200", "bg-white");
+          hardCard.classList.add("border-rose-500", "bg-rose-50/20", "ring-2", "ring-rose-500/10");
+        }
+
+        updateSetupSummaryAndValidation();
+      }
+
+      function resetDifficultySelectionButtonsState() {
+        const easyCard = document.getElementById("diffBtn-easy");
+        const medCard = document.getElementById("diffBtn-medium");
+        const hardCard = document.getElementById("diffBtn-hard");
+
+        if (easyCard) {
+          easyCard.className = "diff-config-btn hover:border-emerald-400 text-left p-4 rounded-xl border border-slate-200 bg-white transition duration-200 flex flex-col gap-1.5 focus:outline-none";
+        }
+        if (medCard) {
+          medCard.className = "diff-config-btn hover:border-amber-400 text-left p-4 rounded-xl border border-slate-200 bg-white transition duration-200 flex flex-col gap-1.5 focus:outline-none";
+        }
+        if (hardCard) {
+          hardCard.className = "diff-config-btn hover:border-rose-400 text-left p-4 rounded-xl border border-slate-200 bg-white transition duration-200 flex flex-col gap-1.5 focus:outline-none";
+        }
+      }
+
+      function updateSetupSummaryAndValidation() {
+        const summaryLine = document.getElementById("setupSummaryLine");
+        const startBtn = document.getElementById("startQuizBtn");
+
+        if (questionCount && chosenDifficulty) {
+          const targetTopic = selectedSubtopic || "Selected Topic";
+          let sourceMsg = "";
+
+          if (quizEngineMode === "offline") {
+            sourceMsg = `produced instantly via <strong class="text-indigo-600">Offline Practice Simulator</strong> (No limits)`;
+          } else if (pdfExtractedText && pdfExtractedText.length > 0) {
+            sourceMsg = `generated from <strong class="text-indigo-600">${pdfFileInfo ? pdfFileInfo.filename : "uploaded PDF study material"}</strong>`;
+          } else {
+            sourceMsg = `generated dynamically via <strong class="text-brand-500">Gemini AI</strong>`;
+          }
+
+          let diffColorClass = "bg-amber-100 text-amber-800";
+          if (chosenDifficulty === "Easy") {
+            diffColorClass = "bg-emerald-100 text-emerald-800";
+          } else if (chosenDifficulty === "Hard") {
+            diffColorClass = "bg-rose-100 text-rose-800";
+          }
+
+          summaryLine.innerHTML = `Ready: <strong class="text-brand-600">${questionCount}</strong> <span class="uppercase font-extrabold text-[10px] px-2 py-0.5 rounded-full ${diffColorClass}">${chosenDifficulty}</span> questions on <strong class="text-slate-800">${escapeHTML(targetTopic)}</strong>, ${sourceMsg}`;
+          summaryLine.classList.remove("hidden");
+
+          startBtn.disabled = false;
+          startBtn.classList.remove("bg-slate-200", "text-slate-500", "cursor-not-allowed");
+          startBtn.classList.add("bg-brand-500", "text-white", "hover:bg-brand-600", "cursor-pointer");
+        } else {
+          summaryLine.classList.add("hidden");
+          summaryLine.textContent = "";
+
+          startBtn.disabled = true;
+          startBtn.classList.add("bg-slate-200", "text-slate-500", "cursor-not-allowed");
+          startBtn.classList.remove("bg-brand-500", "text-white", "hover:bg-brand-600", "cursor-pointer");
+        }
+      }
+
+      function resetQuestionSelectionButtonsState() {
+        const buttons = document.querySelectorAll(".q-config-btn");
+        buttons.forEach(btn => {
+          btn.classList.add("bg-white", "border-slate-200", "text-slate-700");
+          btn.classList.remove("bg-brand-50", "border-brand-500", "text-brand-500", "ring-2", "ring-brand-500/20");
+        });
+      }
+
+      function resetQuizSetupState() {
+        questionCount = null;
+        chosenDifficulty = null;
+        resetQuestionSelectionButtonsState();
+        resetDifficultySelectionButtonsState();
+
+        const step2Container = document.getElementById("step2Container");
+        if (step2Container) {
+          step2Container.classList.add("hidden");
+        }
+
+        const summaryLine = document.getElementById("setupSummaryLine");
+        if (summaryLine) {
+          summaryLine.classList.add("hidden");
+          summaryLine.textContent = "";
+        }
+
+        const startBtn = document.getElementById("startQuizBtn");
+        if (startBtn) {
+          startBtn.disabled = true;
+          startBtn.classList.add("bg-slate-200", "text-slate-500", "cursor-not-allowed");
+          startBtn.classList.remove("bg-brand-500", "text-white", "hover:bg-brand-600", "cursor-pointer");
+        }
+
+        const note = document.getElementById("setupTimerNote");
+        if (note) {
+          note.textContent = "Timer = 1.5 minutes per question (e.g., 20 questions = 30 minutes)";
+        }
+      }
+
+      function showCustomConfirm({ title, message, confirmText = "Confirm", cancelText = "Cancel", mode = "confirm", icon = "help-circle", iconColorClass = "text-brand-500", iconBgClass = "bg-brand-50" }) {
+        return new Promise((resolve) => {
+          const overlay = document.getElementById("customDialogOverlay");
+          const titleEl = document.getElementById("customDialogTitle");
+          const messageEl = document.getElementById("customDialogMessage");
+          const cancelBtn = document.getElementById("customDialogCancelBtn");
+          const confirmBtn = document.getElementById("customDialogConfirmBtn");
+          const iconContainer = document.getElementById("customDialogIconContainer");
+
+          if (!overlay || !titleEl || !messageEl || !cancelBtn || !confirmBtn || !iconContainer) {
+            // Fallback if dialog elements aren't loaded somehow
+            if (mode === "confirm") {
+              resolve(window.confirm(message));
+            } else {
+              window.alert(message);
+              resolve(true);
+            }
+            return;
+          }
+
+          titleEl.textContent = title;
+          messageEl.textContent = message;
+          confirmBtn.textContent = confirmText;
+          cancelBtn.textContent = cancelText;
+
+          iconContainer.className = `p-2 rounded-lg ${iconBgClass}`;
+          iconContainer.innerHTML = `<i data-lucide="${icon}" class="w-6 h-6 ${iconColorClass}"></i>`;
+
+          if (mode === "alert") {
+            cancelBtn.classList.add("hidden");
+          } else {
+            cancelBtn.classList.remove("hidden");
+          }
+
+          overlay.classList.remove("hidden");
+          refreshLucideIcons();
+
+          const onConfirm = () => {
+            overlay.classList.add("hidden");
+            cleanup();
+            resolve(true);
+          };
+
+          const onCancel = () => {
+            overlay.classList.add("hidden");
+            cleanup();
+            resolve(false);
+          };
+
+          const cleanup = () => {
+            confirmBtn.removeEventListener("click", onConfirm);
+            cancelBtn.removeEventListener("click", onCancel);
+          };
+
+          confirmBtn.addEventListener("click", onConfirm, { once: true });
+          cancelBtn.addEventListener("click", onCancel, { once: true });
+        });
+      }
+
+      // ===============================================
+      // MULTI-API SOURCE & SETTINGS PREFERENCES LOGIC
+      // ===============================================
+      let pdfExtractedText = "";
+      let pdfFileInfo = null;
+      let geminiRetryAttempt = 0;
+
+      function openSettingsSidebar() {
+        const prefRemember = localStorage.getItem("preferences_remember_topic") !== "false";
+        const prefExplanations = localStorage.getItem("preferences_show_explanations") === "true";
+        const prefDark = localStorage.getItem("preferences_dark_mode") === "true";
+
+        const prRem = document.getElementById("prefRememberTopic");
+        const prExp = document.getElementById("prefShowExplanations");
+        const prDrk = document.getElementById("prefDarkMode");
+
+        if (prRem) prRem.checked = prefRemember;
+        if (prExp) prExp.checked = prefExplanations;
+        if (prDrk) prDrk.checked = prefDark;
+
+        const gemKey = localStorage.getItem("gemini_api_key") || "";
+        const gemInput = document.getElementById("settingsGeminiKey");
+        if (gemInput) gemInput.value = gemKey;
+
+        const sidebar = document.getElementById("settingsSidebar");
+        if (sidebar) sidebar.classList.remove("hidden");
+        refreshLucideIcons();
+      }
+
+      function closeSettingsSidebar() {
+        const sidebar = document.getElementById("settingsSidebar");
+        if (sidebar) sidebar.classList.add("hidden");
+      }
+
+      function toggleSettingsKeyVisibility() {
+        const inp = document.getElementById("settingsGeminiKey");
+        const eyeIcon = document.getElementById("settingsKeyEyeIcon");
+        if (!inp || !eyeIcon) return;
+        if (inp.type === "password") {
+          inp.type = "text";
+          eyeIcon.setAttribute("data-lucide", "eye-off");
+        } else {
+          inp.type = "password";
+          eyeIcon.setAttribute("data-lucide", "eye");
+        }
+        refreshLucideIcons();
+      }
+
+      function saveCustomGeminiKey() {
+        const val = document.getElementById("settingsGeminiKey").value.trim();
+        if (!val) {
+          showToastNotification("Please type a valid API key first", "error");
+          return;
+        }
+        if (val.length < 15) {
+          showToastNotification("API key seems too short. Please verify your key.", "warning");
+        }
+        localStorage.setItem("gemini_api_key", val);
+        showToastNotification("API Key saved! Unlimited questions mode enabled.", "success");
+        updateAPIStatusBadge();
+        closeSettingsSidebar();
+      }
+
+      function clearCustomGeminiKey() {
+        localStorage.removeItem("gemini_api_key");
+        const inp = document.getElementById("settingsGeminiKey");
+        if (inp) inp.value = "";
+        showToastNotification("Custom key cleared. Default shared limitations applied.", "info");
+        updateAPIStatusBadge();
+      }
+
+      function updateAPIStatusBadge() {
+        const indicator = document.getElementById("apiStatusIndicator");
+        if (!indicator) return;
+        const customKey = localStorage.getItem("gemini_api_key") || "";
+        if (customKey && customKey.trim().length > 3) {
+          indicator.className = "flex items-center space-x-1 px-2 py-1 md:space-x-1.5 md:px-3 md:py-1.5 rounded-full text-[10px] md:text-xs font-bold bg-amber-500/20 text-amber-200 border border-amber-500/30 select-none cursor-pointer hover:bg-white/10 transition";
+          indicator.innerHTML = `
+            <span class="w-2 h-2 rounded-full bg-amber-400 animate-pulse"></span>
+            <span class="hidden sm:inline">Unlimited Mode Active</span>
+            <i data-lucide="zap" class="w-3.5 h-3.5 text-amber-400"></i>
+          `;
+          indicator.title = "Custom API Key Active: Unlimited Questions Mode";
+        } else {
+          indicator.className = "flex items-center space-x-1 px-2 py-1 md:space-x-1.5 md:px-3 md:py-1.5 rounded-full text-[10px] md:text-xs font-semibold bg-emerald-500/20 text-emerald-100 select-none cursor-pointer hover:bg-white/10 transition";
+          indicator.innerHTML = `
+            <span class="w-2 h-2 rounded-full bg-emerald-400"></span>
+            <span class="hidden sm:inline">AI Online</span>
+            <i data-lucide="shield-check" class="w-3.5 h-3.5 text-emerald-400"></i>
+          `;
+          indicator.title = "Click to set a custom API key for unlimited questions";
+        }
+        if (typeof refreshLucideIcons === "function") {
+          refreshLucideIcons();
+        }
+      }
+
+      function togglePrefRememberTopic() {
+        const checked = document.getElementById("prefRememberTopic").checked;
+        localStorage.setItem("preferences_remember_topic", checked ? "true" : "false");
+      }
+
+      function togglePrefShowExplanations() {
+        const checked = document.getElementById("prefShowExplanations").checked;
+        localStorage.setItem("preferences_show_explanations", checked ? "true" : "false");
+      }
+
+      function togglePrefDarkMode() {
+        const checked = document.getElementById("prefDarkMode").checked;
+        localStorage.setItem("preferences_dark_mode", checked ? "true" : "false");
+        applyDarkModeStyle(checked);
+      }
+
+      function applyDarkModeStyle(enable) {
+        if (enable) {
+          document.body.classList.add("dark-mode-active");
+          document.documentElement.classList.add("dark-mode-active");
+        } else {
+          document.body.classList.remove("dark-mode-active");
+          document.documentElement.classList.remove("dark-mode-active");
+        }
+      }
+
+      // COMPREHENSIVE LANDING PAGE PDF STUDY UPLOAD SYSTEM
+      async function handleHomePdfSelected(event) {
+        let file;
+        if (event.target && event.target.files) {
+          file = event.target.files[0];
+        } else if (event.dataTransfer && event.dataTransfer.files) {
+          file = event.dataTransfer.files[0];
+        }
+        if (!file) return;
+
+        if (file.type !== "application/pdf" && !file.name.toLowerCase().endsWith(".pdf")) {
+          showHomePdfError("Invalid File Format", "Only standard .pdf study files are supported by this application. Parse rejected.");
+          return;
+        }
+        if (file.size > 10 * 1024 * 1024) {
+          showHomePdfError("File Size Over Limit", "Your uploaded PDF is too large. The size limit is exactly 10MB to maintain ultra-fast processing.");
+          return;
+        }
+
+        const dropZone = document.getElementById("homePdfDropZone");
+        const progressBlock = document.getElementById("homePdfProgressBlock");
+        const progressBarFill = document.getElementById("homePdfProgressBarFill");
+        const progressStatus = document.getElementById("homePdfProgressStatus");
+        const successBlock = document.getElementById("homePdfSuccessBlock");
+        const errorBlock = document.getElementById("homePdfErrorBlock");
+
+        if (dropZone) dropZone.classList.add("hidden");
+        if (progressBlock) progressBlock.classList.remove("hidden");
+        if (successBlock) successBlock.classList.add("hidden");
+        if (errorBlock) errorBlock.classList.add("hidden");
+
+        const reader = new FileReader();
+        reader.onload = async function() {
+          try {
+            const arrayBuffer = this.result;
+            
+            if (typeof pdfjsLib === "undefined") {
+              throw new Error("PDF parser engine loading. Try again in 2 seconds.");
+            }
+
+            // Set pdf.js worker endpoint
+            if (pdfjsLib.GlobalWorkerOptions && !pdfjsLib.GlobalWorkerOptions.workerSrc) {
+              pdfjsLib.GlobalWorkerOptions.workerSrc = "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js";
+            }
+
+            const loadingTask = pdfjsLib.getDocument({ data: arrayBuffer });
+            const pdf = await loadingTask.promise;
+            const numPages = pdf.numPages;
+            let extractedText = "";
+
+            for (let i = 1; i <= numPages; i++) {
+              const page = await pdf.getPage(i);
+              const textContent = await page.getTextContent();
+              const pageText = textContent.items.map(item => item.str).join(" ");
+              extractedText += pageText + "\n";
+
+              const pct = Math.round((i / numPages) * 100);
+              if (progressBarFill) progressBarFill.style.width = `${pct}%`;
+              if (progressStatus) {
+                progressStatus.innerHTML = `<i data-lucide="loader" class="w-3.5 h-3.5 animate-spin"></i> Reading PDF... ${pct}%`;
+              }
+              refreshLucideIcons();
+            }
+
+            if (!extractedText.trim()) {
+              throw new Error("This PDF appears to be empty, scanned, or image-only. Text content layer could not be parsed.");
+            }
+
+            // Save text to global var (caps to 8500 chars to avoid model overload)
+            pdfExtractedText = extractedText.substring(0, 8500);
+            const wordCount = extractedText.trim().split(/\s+/).length;
+            
+            pdfFileInfo = {
+              filename: file.name,
+              pageCount: numPages,
+              wordCount: wordCount
+            };
+
+            if (progressBlock) progressBlock.classList.add("hidden");
+            if (successBlock) successBlock.classList.remove("hidden");
+            
+            const nameEl = document.getElementById("homePdfSuccessFilename");
+            const summaryEl = document.getElementById("homePdfSuccessSummary");
+            if (nameEl) nameEl.textContent = file.name;
+            if (summaryEl) summaryEl.textContent = `${numPages} page${numPages > 1 ? 's' : ''}, ~${wordCount} words fully analyzed`;
+
+            showToastNotification("Study material processed successfully!", "success");
+            updateSetupSummaryAndValidation();
+          } catch (err) {
+            console.error("PDF Parsing error:", err);
+            showHomePdfError("Upload Processing Failed", err.message || "An unexpected error occurred while analyzing the document layer.");
+          }
+        };
+        reader.readAsArrayBuffer(file);
+      }
+
+      function showHomePdfError(title, msg) {
+        pdfExtractedText = "";
+        pdfFileInfo = null;
+
+        const dropZone = document.getElementById("homePdfDropZone");
+        const progressBlock = document.getElementById("homePdfProgressBlock");
+        const successBlock = document.getElementById("homePdfSuccessBlock");
+        const errorBlock = document.getElementById("homePdfErrorBlock");
+        const errTitle = document.getElementById("homePdfErrorTitle");
+        const errText = document.getElementById("homePdfErrorMsg");
+
+        if (dropZone) dropZone.classList.add("hidden");
+        if (progressBlock) progressBlock.classList.add("hidden");
+        if (successBlock) successBlock.classList.add("hidden");
+        if (errorBlock) errorBlock.classList.remove("hidden");
+
+        if (errTitle) errTitle.textContent = title;
+        if (errText) errText.textContent = msg;
+
+        showToastNotification(title, "error");
+      }
+
+      function removeHomePdf(event) {
+        if (event) {
+          event.preventDefault();
+          event.stopPropagation();
+        }
+        pdfExtractedText = "";
+        pdfFileInfo = null;
+
+        const fileInp = document.getElementById("homePdfFileInput");
+        if (fileInp) fileInp.value = "";
+
+        resetHomePdfUpload();
+        showToastNotification("PDF study material removed successfully.", "info");
+        updateSetupSummaryAndValidation();
+      }
+
+      function resetHomePdfUpload() {
+        pdfExtractedText = "";
+        pdfFileInfo = null;
+
+        const fileInp = document.getElementById("homePdfFileInput");
+        if (fileInp) fileInp.value = "";
+
+        const successBlock = document.getElementById("homePdfSuccessBlock");
+        const progressBlock = document.getElementById("homePdfProgressBlock");
+        const errorBlock = document.getElementById("homePdfErrorBlock");
+        const dropZone = document.getElementById("homePdfDropZone");
+
+        if (successBlock) successBlock.classList.add("hidden");
+        if (progressBlock) progressBlock.classList.add("hidden");
+        if (errorBlock) errorBlock.classList.add("hidden");
+        if (dropZone) dropZone.classList.remove("hidden");
+        
+        refreshLucideIcons();
+      }
+
+      function goToSetupFromPdf() {
+        if (!pdfExtractedText) {
+          showToastNotification("Please upload a PDF study material first", "error");
+          return;
+        }
+        selectedCategory = {
+          id: "pdf_material",
+          title: "PDF Study Material",
+          isMix: false,
+          description: "Questions generated exclusively from your uploaded PDF document."
+        };
+        selectedSubtopic = pdfFileInfo ? pdfFileInfo.filename : "PDF Material Study";
+        resetQuizSetupState();
+        goToScreen(2);
+      }
+
+      function setupPdfDragAndDrop() {
+        const dropZone = document.getElementById("homePdfDropZone");
+        if (!dropZone) return;
+
+        ["dragenter", "dragover"].forEach(eventName => {
+          dropZone.addEventListener(eventName, (e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            dropZone.classList.add("border-brand-500", "bg-brand-50/20");
+          }, false);
+        });
+
+        ["dragleave", "drop"].forEach(eventName => {
+          dropZone.addEventListener(eventName, (e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            dropZone.classList.remove("border-brand-500", "bg-brand-50/20");
+          }, false);
+        });
+
+        dropZone.addEventListener("drop", (e) => {
+          const dt = e.dataTransfer;
+          const files = dt.files;
+          if (files && files.length > 0) {
+            handleHomePdfSelected({ target: { files: files } });
+          }
+        }, false);
+      }
+
+      function showToastNotification(message, type = "success") {
+        let container = document.getElementById("toastContainer");
+        if (!container) {
+          container = document.createElement("div");
+          container.id = "toastContainer";
+          container.className = "fixed bottom-5 right-5 z-[100] flex flex-col gap-2 pointer-events-none";
+          document.body.appendChild(container);
+        }
+
+        const toast = document.createElement("div");
+        toast.className = "p-3 px-4 rounded-xl text-xs font-bold shadow-lg flex items-center gap-2 border transition-all duration-300 translate-y-2 opacity-0 pointer-events-auto max-w-sm bg-white";
+        
+        let icon = "info";
+        if (type === "success") {
+          toast.classList.add("text-emerald-800", "bg-emerald-50", "border-emerald-100");
+          icon = "check-circle";
+        } else if (type === "error") {
+          toast.classList.add("text-rose-800", "bg-rose-50", "border-red-100");
+          icon = "alert-circle";
+        } else if (type === "info") {
+          toast.classList.add("text-blue-800", "bg-blue-50", "border-blue-100");
+          icon = "info";
+        }
+
+        toast.innerHTML = `
+          <i data-lucide="${icon}" class="w-4 h-4 flex-shrink-0"></i>
+          <span>${message}</span>
+        `;
+        container.appendChild(toast);
+        refreshLucideIcons();
+
+        setTimeout(() => {
+          toast.classList.remove("translate-y-2", "opacity-0");
+        }, 10);
+
+        setTimeout(() => {
+          toast.classList.add("opacity-0", "translate-y-[-10px]");
+          setTimeout(() => {
+            toast.remove();
+          }, 300);
+        }, 4000);
+      }
+
+      function showErrorOverlayWithAction(message, isAuthError = false) {
+        const errorConsole = document.getElementById("errorConsole");
+        if (errorConsole) errorConsole.textContent = message;
+
+        const errorModal = document.getElementById("errorOverlay");
+        if (errorModal) errorModal.classList.remove("hidden");
+
+        // Automatically treat rate limit, exhausted or API key issues as auth/limits errors
+        const text = (message || "").toLowerCase();
+        const detectedLimit = text.includes("limit") || text.includes("quota") || text.includes("429") || text.includes("exhausted") || text.includes("key") || isAuthError;
+
+        const keySec = document.getElementById("errorOverlayKeySection");
+        const offlineSec = document.getElementById("errorOverlayOfflineSection");
+        if (keySec) {
+          if (detectedLimit) {
+            keySec.classList.remove("hidden");
+            const inp = document.getElementById("errorOverlayGeminiKey");
+            if (inp) {
+              inp.value = localStorage.getItem("gemini_api_key") || "";
+            }
+          } else {
+            keySec.classList.add("hidden");
+          }
+        }
+        if (offlineSec) {
+          if (detectedLimit) {
+            offlineSec.classList.remove("hidden");
+          } else {
+            offlineSec.classList.add("hidden");
+          }
+        }
+
+        const btnContainer = errorModal?.querySelector(".flex.space-x-2.pt-2");
+        if (btnContainer) {
+          if (detectedLimit) {
+            btnContainer.innerHTML = `
+              <button onclick="closeErrorOverlay()" class="flex-1 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs py-2 rounded-xl font-bold transition cursor-pointer">
+                Dismiss
+              </button>
+              <button id="errorRetryButton" class="flex-1 bg-brand-500 hover:bg-brand-600 text-white text-xs py-2 rounded-xl font-bold transition cursor-pointer">
+                Retry Synthesis
+              </button>
+            `;
+          } else {
+            btnContainer.innerHTML = `
+              <button onclick="closeErrorOverlay()" class="flex-1 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs py-2 rounded-xl font-bold transition cursor-pointer">
+                Dismiss
+              </button>
+              <button id="errorRetryButton" class="flex-1 bg-brand-500 hover:bg-brand-600 text-white text-xs py-2 rounded-xl font-bold transition cursor-pointer">
+                Retry
+              </button>
+            `;
+          }
+        }
+        refreshLucideIcons();
+      }
+
+      function toggleErrorSettingsKeyVisibility() {
+        const inp = document.getElementById("errorOverlayGeminiKey");
+        const eyeIcon = document.getElementById("errorKeyEyeIcon");
+        if (!inp || !eyeIcon) return;
+        if (inp.type === "password") {
+          inp.type = "text";
+          eyeIcon.setAttribute("data-lucide", "eye-off");
+        } else {
+          inp.type = "password";
+          eyeIcon.setAttribute("data-lucide", "eye");
+        }
+        refreshLucideIcons();
+      }
+
+      function saveErrorOverlayGeminiKey() {
+        const val = document.getElementById("errorOverlayGeminiKey").value.trim();
+        if (!val) {
+          showToastNotification("Please paste a valid API key first", "error");
+          return;
+        }
+        if (val.length < 15) {
+          showToastNotification("API key seems too short. Please verify your key.", "warning");
+        }
+        localStorage.setItem("gemini_api_key", val);
+        showToastNotification("Custom API Key saved! Unlimited Mode enabled.", "success");
+        updateAPIStatusBadge();
+        
+        // Sync setting panel
+        const sidebarInp = document.getElementById("settingsGeminiKey");
+        if (sidebarInp) sidebarInp.value = val;
+
+        // Auto-click the retry button to resume user flow immediately
+        const retryBtn = document.getElementById("errorRetryButton");
+        if (retryBtn) {
+          retryBtn.click();
+        } else {
+          closeErrorOverlay();
+        }
+      }
+
+      // ===============================================
+      // OFFLINE PRACTICE MODE SYSTEM
+      // ===============================================
+      function toggleQuizEngineMode(mode) {
+        quizEngineMode = mode;
+        const aiCard = document.getElementById("engineModeAICard");
+        const offlineCard = document.getElementById("engineModeOfflineCard");
+        const aiIcon = document.getElementById("engineAICardIcon");
+        const offlineIcon = document.getElementById("engineOfflineCardIcon");
+        const modeBadge = document.getElementById("currentModeSelectedBadge");
+        
+        if (!aiCard || !offlineCard) return;
+
+        if (mode === "ai") {
+          aiCard.className = "cursor-pointer border-2 border-brand-500 bg-brand-50/20 rounded-xl p-3 flex items-start gap-2.5 transition select-none";
+          offlineCard.className = "cursor-pointer border border-slate-200 bg-white rounded-xl p-3 flex items-start gap-2.5 hover:border-slate-300 transition select-none";
+          
+          if (aiIcon) aiIcon.className = "p-1.5 bg-brand-500 text-white rounded-lg mt-0.5";
+          if (offlineIcon) offlineIcon.className = "p-1.5 bg-slate-100 text-slate-500 rounded-lg mt-0.5";
+          
+          if (modeBadge) {
+            modeBadge.textContent = "AI Interactive";
+            modeBadge.className = "text-[10px] bg-brand-50 text-brand-600 font-extrabold px-2.5 py-0.5 rounded-full select-none";
+          }
+          showToastNotification("Engine mode is set to Google Gemini AI (Cloud)", "info");
+        } else {
+          aiCard.className = "cursor-pointer border border-slate-200 bg-white rounded-xl p-3 flex items-start gap-2.5 hover:border-slate-300 transition select-none";
+          offlineCard.className = "cursor-pointer border-2 border-indigo-500 bg-indigo-50/20 rounded-xl p-3 flex items-start gap-2.5 transition select-none";
+          
+          if (aiIcon) aiIcon.className = "p-1.5 bg-slate-100 text-slate-500 rounded-lg mt-0.5";
+          if (offlineIcon) offlineIcon.className = "p-1.5 bg-indigo-500 text-white rounded-lg mt-0.5";
+          
+          if (modeBadge) {
+            modeBadge.textContent = "Sandbox Offline";
+            modeBadge.className = "text-[10px] bg-indigo-50 text-indigo-700 font-extrabold px-2.5 py-0.5 rounded-full select-none";
+          }
+          showToastNotification("Engine mode is set to Local Sandbox (Free & Instant)", "success");
+        }
+        if (typeof refreshLucideIcons === "function") {
+          refreshLucideIcons();
+        }
+        updateSetupSummaryAndValidation();
+      }
+
+      function activateOfflineQuizAndPlay() {
+        toggleQuizEngineMode("offline");
+        closeErrorOverlay();
+        startQuizGeneration();
+      }
+
+      function generateOfflineQuestionsList(categoryId, subtopic, count, difficulty) {
+        const result = [];
+        const randomChoice = (arr) => arr[Math.floor(Math.random() * arr.length)];
+        
+        // --- 1. MATHEMATICS TEMPLATE GENERATORS ---
+        const mathPool = [
+          {
+            type: "time_work",
+            generator: () => {
+              const names = [["Alice", "Bob"], ["Vikram", "Aditya"], ["John", "Sam"], ["Riya", "Amit"]];
+              const chosenNames = randomChoice(names);
+              const pairs = [
+                { x: 10, y: 15, ans: 6 },
+                { x: 12, y: 24, ans: 8 },
+                { x: 15, y: 30, ans: 10 },
+                { x: 20, y: 30, ans: 12 },
+                { x: 30, y: 60, ans: 20 },
+                { x: 8, y: 24, ans: 6 }
+              ];
+              const p = randomChoice(pairs);
+              return {
+                question: `${chosenNames[0]} can complete a piece of work in ${p.x} days, and ${chosenNames[1]} can complete the same work in ${p.y} days. If they work together, in how many days will they complete the work?`,
+                options: [`${p.ans} days`, `${p.ans + 2} days`, `${Math.round((p.x + p.y) / 2)} days`, `${p.ans + 3} days`],
+                correct: 0,
+                explanation: `Work units formula: Let total work be LCM of ${p.x} and ${p.y} = ${p.x * p.y / p.ans} units.\nOne day work of ${chosenNames[0]} = ${p.y / p.ans} units.\nOne day work of ${chosenNames[1]} = ${p.x / p.ans} units.\nTogether efficiency = ${(p.x + p.y) / p.ans} units/day. Total days = ${p.ans} days.`,
+                difficulty: difficulty,
+                page_hint: "Quantitative Aptitude: Work Theorems"
+              };
+            }
+          },
+          {
+            type: "profit_loss",
+            generator: () => {
+              const items = ["laptop", "smartphone", "smartwatch", "bicycle", "DSLR camera"];
+              const names = ["A trader", "A retailer", "A storekeeper", "Jessica", "Raj"];
+              const dVals = [100, 150, 200, 300, 500];
+              const chosenItem = randomChoice(items);
+              const chosenName = randomChoice(names);
+              const dVal = randomChoice(dVals);
+              const cp = dVal * 20; // 5% CP
+              return {
+                question: `${chosenName} sells a ${chosenItem} at a profit of 10%. If he had sold it for Rs. ${dVal} more, his gain would have been 15%. What is the cost price of the ${chosenItem}?`,
+                options: [`Rs. ${cp}`, `Rs. ${cp - dVal}`, `Rs. ${cp + dVal * 2}`, `Rs. ${Math.round(cp * 1.25)}`],
+                correct: 0,
+                explanation: `Difference in gains: 15% - 10% = 5% of CP.\nSince 5% of CP = Rs. ${dVal}, and Cost Price (CP) represents 100%:\nCP = (Rs. ${dVal} / 5) * 100 = Rs. ${cp}.`,
+                difficulty: difficulty,
+                page_hint: "Quantitative Aptitude: Margins & Profitability"
+              };
+            }
+          },
+          {
+            type: "percentage_elasticity",
+            generator: () => {
+              const pairs = [
+                { p: 20, ans: "16.67%", opt: ["16.67%", "20%", "25%", "15%"], expl: "Reduction = [20 / (100 + 20)] * 100 = 16.67%." },
+                { p: 25, ans: "20%", opt: ["20%", "25%", "15%", "12%"], expl: "Reduction = [25 / (100 + 25)] * 100 = 20%." },
+                { p: 50, ans: "33.33%", opt: ["33.33%", "50%", "25%", "45%"], expl: "Reduction = [50 / (100 + 50)] * 100 = 33.33%." }
+              ];
+              const chosen = randomChoice(pairs);
+              const commodities = ["sugar", "fuel", "salt", "cooking oil"];
+              const comm = randomChoice(commodities);
+              return {
+                question: `If the retail price of ${comm} is increased by ${chosen.p}%, by how much percent must a household reduce its consumption so as not to increase its total expenditure?`,
+                options: chosen.opt,
+                correct: 0,
+                explanation: `Formula for consumption reduction percentage: [P / (100 + P)] * 100%.\nSubstituting P = ${chosen.p}%:\n${chosen.expl}`,
+                difficulty: difficulty,
+                page_hint: "Quantitative Aptitude: Percentage & Ratios"
+              };
+            }
+          },
+          {
+            type: "simple_interest",
+            generator: () => {
+              const multiples = [
+                { times: 2, years: 10, rate: 10 },
+                { times: 2, years: 8, rate: 12.5 },
+                { times: 2, years: 5, rate: 20 },
+                { times: 3, years: 10, rate: 20 },
+                { times: 3, years: 20, rate: 10 }
+              ];
+              const m = randomChoice(multiples);
+              return {
+                question: `A certain sum of money becomes ${m.times} times of itself in ${m.years} years under a static Simple Interest scheme. What is the annual rate of interest?`,
+                options: [`${m.rate}% per annum`, `${m.rate + 5}% per annum`, `${m.rate * 1.5}% per annum`, `${m.rate - 2.5}% per annum`],
+                correct: 0,
+                explanation: `Formula: If a sum becomes N times, SI = (N - 1) * Principal.\nWe know SI = (Principal * Rate * Time) / 100.\nThus, (N - 1) * P = (P * R * T) / 100 => Rate = ((N - 1) * 100) / Time.\nSubstituting values: Rate = ((${m.times} - 1) * 100) / ${m.years} = ${m.rate}%.`,
+                difficulty: difficulty,
+                page_hint: "Quantitative Aptitude: Simple & Compound Interest"
+              };
+            }
+          }
+        ];
+
+        // --- 2. LOGICAL REASONING TEMPLATE GENERATORS ---
+        const logicalPool = [
+          {
+            type: "number_progression",
+            generator: () => {
+              const series = [
+                { seq: "2, 6, 12, 20, 30, ...", ans: "42", expl: "The differences are consecutive even integers: +4, +6, +8, +10. The next difference is +12. Therefore, next number = 30 + 12 = 42." },
+                { seq: "3, 9, 27, 81, ...", ans: "243", expl: "Geometric progression. Each term is multiplied by 3. Next term = 81 * 3 = 243." },
+                { seq: "5, 11, 23, 47, ...", ans: "95", expl: "Double-and-add-one pattern: (Term * 2) + 1. Next number = (47 * 2) + 1 = 95." },
+                { seq: "1, 4, 9, 16, 25, ...", ans: "36", expl: "Sequence of square numbers: 1^2, 2^2, 3^2, 4^2, 5^2. The next is 6^2 = 36." },
+                { seq: "2, 3, 5, 7, 11, ...", ans: "13", expl: "Sequence of consecutive prime numbers. The next prime number immediately after 11 is 13." }
+              ];
+              const s = randomChoice(series);
+              return {
+                question: `What will be the next number in the given logical sequence? List: ${s.seq}`,
+                options: [s.ans, (parseInt(s.ans) + 4).toString(), (parseInt(s.ans) - 2).toString(), (parseInt(s.ans) + 10).toString()],
+                correct: 0,
+                explanation: s.expl,
+                difficulty: difficulty,
+                page_hint: "Logical Reasoning: Number Arrays & Progressions"
+              };
+            }
+          },
+          {
+            type: "coding_mechanics",
+            generator: () => {
+              const keys = [
+                { orig: "TEACHER", coded: "VGCEJGT", test: "STUDENT", ans: "UVWFGPU", expl: "Each character is shifted right by exactly 2 positions (T->V, E->G, A->C...). For STUDENT: S+2=U, T+2=V, U+2=W, D+2=F, E+2=G, N+2=P, T+2=V." },
+                { orig: "CAT", coded: "DDY", test: "DOG", ans: "ERL", expl: "First letter shifts +1 (C->D), second +3 (A->D), third +5 (T->Y). For DOG: D+1=E, O+3=R, G+5=L. Result = ERL." }
+              ];
+              const k = randomChoice(keys);
+              return {
+                question: `In a certain secret code language, if '${k.orig}' is written as '${k.coded}', how will '${k.test}' be represented in that identical language?`,
+                options: [k.ans, k.ans.split("").reverse().join(""), k.ans.replace(/./g, "X"), "None of the above"],
+                correct: 0,
+                explanation: k.expl,
+                difficulty: difficulty,
+                page_hint: "Logical Reasoning: Substitution Cryptography"
+              };
+            }
+          },
+          {
+            type: "direction_sense",
+            generator: () => {
+              return {
+                question: "A person leaves home, walks 8 km North, then turns right and walks 6 km. What is the shortest direct displacement distance back to the starting point?",
+                options: ["10 km", "14 km", "8.5 km", "12 km"],
+                correct: 0,
+                explanation: "The path forms a right-angled triangle. Hypotenuse = sqrt(8^2 + 6^2) = sqrt(64 + 36) = sqrt(100) = 10 km.",
+                difficulty: difficulty,
+                page_hint: "Logical Reasoning: Pythagoras Spatial Coordinates"
+              };
+            }
+          }
+        ];
+
+        // --- 3. VERBAL ENGLISH POOL ---
+        const verbalPool = [
+          {
+            question: "Choose the word among the options that is closest (Synonym) to 'Pragmatic'.",
+            options: ["Practical", "Theoretical", "Arrogant", "Capricious"],
+            correct: 0,
+            explanation: "'Pragmatic' describes dealing with things sensibly and realistically based on practical factors rather than abstract ideas. Hence, 'Practical' is the correct match.",
+            difficulty: difficulty,
+            page_hint: "Verbal English: Semantic Synonyms"
+          },
+          {
+            question: "Which of the following terms represents the exact opposite (Antonym) of 'Ephemeral'?",
+            options: ["Eternal", "Transient", "Frail", "Temporary"],
+            correct: 0,
+            explanation: "'Ephemeral' refers to anything transient or very short-lived. The absolute antonym is 'Eternal' or 'Permanent'.",
+            difficulty: difficulty,
+            page_hint: "Verbal English: Semantic Antonyms"
+          },
+          {
+            question: "Identify the grammatical error section: 'Each of the candidates have submitted their academic portfolios.'",
+            options: [
+              "'candidate have submitted'",
+              "'Each of the'",
+              "'their academic portfolios'",
+              "No grammatical error detected."
+            ],
+            correct: 0,
+            explanation: "The pronoun 'Each' is singular. Therefore, it requires the singular auxiliary verb 'has' instead of plural 'have'. Under standard grammar rules, it should be 'has submitted'.",
+            difficulty: difficulty,
+            page_hint: "Verbal English: Concord Errors"
+          }
+        ];
+
+        // --- 4. DATA INTERPRETATION POOL ---
+        const dataPool = [
+          {
+            question: "Consider this table of corporate revenue (in Lakhs) for two divisions:\n\nYear | Division A | Division B\n2022 | 120        | 150\n2023 | 150        | 180\n2024 | 200        | 210\n\nWhat is the absolute growth percentage of Division A from 2022 to 2024?",
+            options: ["66.67%", "80.00%", "50.00%", "100.00%"],
+            correct: 0,
+            explanation: "Revenue increases from 120 in 2022 to 200 in 2024. absolute growth = 200 - 120 = 80 Lakhs.\nGrowth fraction = 80 / 120 = 2/3 = 66.67%.",
+            difficulty: difficulty,
+            page_hint: "Data Interpretation: Revenue Charts"
+          },
+          {
+            question: "In a company budget, the overhead cost is divided as:\n- Salaries: 50%\n- Server Infrastructure: 30%\n- Marketing: 20%\n\nIf the total budget spent on Server Infrastructure is $60,000, what is the budget spent on Marketing?",
+            options: ["$40,000", "$30,000", "$50,000", "$20,000"],
+            correct: 0,
+            explanation: "Server Infra = 30% = $60,000.\nThis means 10% = $20,000.\nMarketing budget = 20% = 2 * 10% = $40,000.",
+            difficulty: difficulty,
+            page_hint: "Data Interpretation: Proportions"
+          }
+        ];
+
+        // --- 5. PROGRAMMING QUESTIONS POOL ---
+        const programmingPool = [
+          {
+            question: "What is the time complexity of searching an element in a balanced Binary Search Tree (BST) of size N?",
+            options: ["O(log N)", "O(N)", "O(N log N)", "O(1)"],
+            correct: 0,
+            explanation: "A balanced BST has a height of log N. Searching requires traversing from root to leaf, dividing search space in half each step, leading to O(log N).",
+            difficulty: difficulty,
+            page_hint: "Computer Science: Tree Algorithms"
+          },
+          {
+            question: "Which of the following SQL commands is specifically used to filter records AFTER they have been aggregated with GROUP BY?",
+            options: ["HAVING", "WHERE", "ORDER BY", "FILTER"],
+            correct: 0,
+            explanation: "The 'WHERE' clause filters rows before aggregation. To filter grouped summaries, the 'HAVING' clause must be used.",
+            difficulty: difficulty,
+            page_hint: "Computer Science: Relational Query Structures"
+          },
+          {
+            question: "What is the expected output of console.log(typeof null) in JavaScript console implementations?",
+            options: ["'object'", "'null'", "'undefined'", "'error'"],
+            correct: 0,
+            explanation: "In JavaScript, 'typeof null' famously returns the string 'object' due to an old legacy design issue with binary tag representations.",
+            difficulty: difficulty,
+            page_hint: "Programming: JavaScript Type Engines"
+          },
+          {
+            question: "In Object-Oriented programming architectures, which concept describes defining child implementations for inheritance methods already present in parent templates?",
+            options: ["Method Overriding", "Method Overloading", "Encapsulation", "State Decoupling"],
+            correct: 0,
+            explanation: "Method Overriding allows a subclass to provide its own signature implementation for an inherited superclass method.",
+            difficulty: difficulty,
+            page_hint: "Programming: Polymorphism Axioms"
+          }
+        ];
+
+        let targetPool = [];
+        
+        // Collate list depending on category
+        if (categoryId === "mathematics") {
+          for (let i = 0; i < count; i++) {
+            targetPool.push(randomChoice(mathPool).generator());
+          }
+        } else if (categoryId === "logical_reasoning") {
+          for (let i = 0; i < count; i++) {
+            targetPool.push(randomChoice(logicalPool).generator());
+          }
+        } else if (categoryId === "verbal_ability") {
+          for (let i = 0; i < count; i++) {
+            targetPool.push({ ...verbalPool[i % verbalPool.length] });
+          }
+        } else if (categoryId === "data_interpretation") {
+          for (let i = 0; i < count; i++) {
+            targetPool.push({ ...dataPool[i % dataPool.length] });
+          }
+        } else if (categoryId === "programming_questions") {
+          for (let i = 0; i < count; i++) {
+            targetPool.push({ ...programmingPool[i % programmingPool.length] });
+          }
+        } else if (categoryId === "pdf_material") {
+          const pdfMockData = [
+            {
+               question: "According to standard systems engineering practices outlined in your PDF study materials, which phase constitutes the foundation of modular analysis?",
+               options: ["Rigorous requirements specification", "Source compilation frequency", "Network handshake latency", "Symmetric token generation"],
+               correct: 0,
+               explanation: "Writing clean, measurable, and verified requirements is key to avoiding downstream regression and architectural bugs.",
+               difficulty: difficulty,
+               page_hint: "PDF Study Material: Page 1, Core Preambles"
+            },
+            {
+               question: "Which primary architectural checkpoint listed on page 2 of your PDF document solves memory optimization bottlenecking?",
+               options: ["Strict memory deallocation / garbage collection sweeps", "Using static global arrays only", "Repeated application compilation sweeps", "Using high-contrast themes"],
+               correct: 0,
+               explanation: "Managing lifecycle memory pools and sweeping unused scopes prevent stack overflow and memory leaks.",
+               difficulty: difficulty,
+               page_hint: "PDF Study Material: Page 2, Memory Diagnostics"
+            }
+          ];
+          for (let i = 0; i < count; i++) {
+            targetPool.push({ ...pdfMockData[i % pdfMockData.length] });
+          }
+        } else {
+          // "all_mix"
+          const mixLists = [
+            () => randomChoice(mathPool).generator(),
+            () => randomChoice(logicalPool).generator(),
+            () => ({ ...randomChoice(verbalPool) }),
+            () => ({ ...randomChoice(dataPool) }),
+            () => ({ ...randomChoice(programmingPool) })
+          ];
+          for (let i = 0; i < count; i++) {
+            const indexChoice = i % mixLists.length;
+            targetPool.push(mixLists[indexChoice]());
+          }
+        }
+        
+        while (targetPool.length < count) {
+          targetPool.push(randomChoice(verbalPool));
+        }
+        return targetPool.slice(0, count);
+      }
+
+      // ===============================================
+      // GENERATOR ROUTINE (MULTI-API INTEGRATED)
+      // ===============================================
+      async function startQuizGeneration() {
+        cycleLoadOverlayTips();
+        const overlay = document.getElementById("loadingOverlay");
+        if (overlay) overlay.classList.remove("hidden");
+
+        if (quizEngineMode === "offline") {
+          setTimeout(() => {
+            const catId = selectedCategory ? selectedCategory.id : "all_mix";
+            quizQuestions = generateOfflineQuestionsList(
+              catId,
+              selectedSubtopic || "Mix",
+              questionCount || 10,
+              chosenDifficulty || "Medium"
+            );
+            geminiRetryAttempt = 0;
+            if (overlay) overlay.classList.add("hidden");
+            initializeQuizGameplay();
+            showToastNotification("Sandbox Offline Simulator Quiz Loaded! Inquiries Ready.", "success");
+          }, 1100);
+          return;
+        }
+
+        let targetTopicString = "";
+        let isPdfMode = !!pdfExtractedText;
+
+        if (!selectedCategory || typeof selectedCategory === "string") {
+          selectedCategory = {
+            id: "pdf_material",
+            title: "PDF Study Material",
+            isMix: false,
+            description: "Questions from your uploaded PDF."
+          };
+        }
+
+        if (isPdfMode) {
+          targetTopicString = `PDF Material Study (${pdfFileInfo ? pdfFileInfo.filename : "document"})`;
+        } else {
+          if (selectedCategory.isMix) {
+            const chosenCategoryTitles = categories
+              .filter(c => !c.isMix && mixSelectedCategories.includes(c.id))
+              .map(c => c.title);
+            if (chosenCategoryTitles.length === 0) {
+              targetTopicString = "All Mix Aptitude Topics (Mathematics, Logical Reasoning, Verbal English, Data Interpretation, Programming)";
+            } else {
+              targetTopicString = "A balanced mix of the following subjects: " + chosenCategoryTitles.join(", ");
+            }
+          } else {
+            targetTopicString = `${selectedCategory.title} -> ${selectedSubtopic}`;
+          }
+        }
+        
+        const loadingHeadline = document.getElementById("loadingHeadline");
+        if (loadingHeadline) {
+          loadingHeadline.textContent = isPdfMode ? `Scanning PDF content...` : `Generating questions...`;
+        }
+
+        // Save last selected topic to localStorage if prefRememberTopic is enabled
+        if (selectedCategory && localStorage.getItem("preferences_remember_topic") !== "false") {
+          localStorage.setItem("last_selected_category", selectedCategory.id);
+          localStorage.setItem("last_selected_subtopic", selectedSubtopic || "");
+        }
+
+        // Body Payload
+        const bodyPayload = {
+          topic: targetTopicString,
+          count: questionCount || 10,
+          difficulty: chosenDifficulty || "Medium"
+        };
+        if (isPdfMode) {
+          bodyPayload.pdfText = pdfExtractedText;
+          bodyPayload.isPdf = true;
+        }
+
+        const headersPayload = {
+          "Content-Type": "application/json"
+        };
+        let customKey = localStorage.getItem("gemini_api_key") || "";
+        if (customKey && customKey.trim().startsWith("gsk_")) {
+          localStorage.removeItem("gemini_api_key");
+          customKey = "";
+          updateAPIStatusBadge();
+        }
+        if (customKey && customKey.trim().length > 3) {
+          headersPayload["X-Gemini-Key"] = customKey.trim();
+        } else if (GEMINI_API_KEY && GEMINI_API_KEY !== "YOUR_GEMINI_KEY_HERE") {
+          headersPayload["X-Gemini-Key"] = GEMINI_API_KEY;
+        }
+
+        try {
+          const res = await fetch("/api/generate", {
+            method: "POST",
+            headers: headersPayload,
+            body: JSON.stringify(bodyPayload)
+          });
+
+          if (!res.ok) {
+            const data = await res.json().catch(() => ({}));
+            console.error("Gemini server error details:", data);
+
+            if (res.status === 401 || res.status === 403) {
+              throw new Error("Invalid Gemini API key context or configuration. Please check the backend deployment status.");
+            } else if (res.status === 429) {
+              throw new Error(data.error || "Too many requests / rate limit exceeded. Please wait a moment and try again.");
+            } else {
+              if (geminiRetryAttempt === 0) {
+                geminiRetryAttempt++;
+                if (loadingHeadline) loadingHeadline.textContent = `Retrying connection...`;
+                showToastNotification("Server congestion detected. Auto-retrying once in 3s...", "info");
+                await new Promise(resolve => setTimeout(resolve, 3000));
+                overlay.classList.add("hidden");
+                startQuizGeneration();
+                return;
+              } else {
+                geminiRetryAttempt = 0;
+                throw new Error(data.error || "Gemini model error. Please wait a moment and retry generation.");
+              }
+            }
+          }
+
+          const data = await res.json();
+          if (!data.success || !data.questions || !Array.isArray(data.questions) || data.questions.length === 0) {
+            throw new Error(data.error || "Parsed JSON resulting in empty question dataset. Please retry.");
+          }
+
+          geminiRetryAttempt = 0;
+          quizQuestions = data.questions;
+          if (overlay) overlay.classList.add("hidden");
+          initializeQuizGameplay();
+        } catch (err) {
+          console.error("Gemini generation error:", err);
+          if (overlay) overlay.classList.add("hidden");
+          
+          const isRateLimit = err.message && (err.message.includes("limit") || err.message.includes("quota") || err.message.includes("429") || err.message.includes("EXHAUSTED") || err.message.includes("exhausted"));
+          showErrorOverlayWithAction(err.message, isRateLimit);
+
+          const retryBtn = document.getElementById("errorRetryButton");
+          if (retryBtn) {
+            retryBtn.onclick = () => {
+              closeErrorOverlay();
+              startQuizGeneration();
+            };
+          }
+        }
+      }
+
+      function closeErrorOverlay() {
+        const errorModal = document.getElementById("errorOverlay");
+        if (errorModal) errorModal.classList.add("hidden");
+      }
+
+      // Tips carousel cycler
+      let tipsTimer = null;
+      function cycleLoadOverlayTips() {
+        // Pick random tip initially
+        const selectRandomTip = () => {
+          const randomIndex = Math.floor(Math.random() * educationalTips.length);
+          document.getElementById("dynamicTipBox").textContent = educationalTips[randomIndex];
+        };
+        selectRandomTip();
+
+        if (tipsTimer) clearInterval(tipsTimer);
+        tipsTimer = setInterval(selectRandomTip, 4500); // cycle every 4.5 seconds
+      }
+
+      // ===============================================
+      // GAMEPLAY RUNTIME ENGINE
+      // ===============================================
+      function initializeQuizGameplay() {
+        quizAnswers = {};
+        bookmarkedQuestions = {};
+        currentQuestionIndex = 0;
+        isTimerPaused = false;
+        timeTakenSec = 0;
+
+        // Initialize Timer duration (90 seconds per question count)
+        totalSecondsLimit = questionCount * 90;
+        remainingSeconds = totalSecondsLimit;
+
+        // Reset Timer UI
+        updateTimerDisplay();
+
+        // Start Clock Chronos
+        if (quizTimerInterval) clearInterval(quizTimerInterval);
+        quizTimerInterval = setInterval(() => {
+          if (!isTimerPaused) {
+            remainingSeconds--;
+            timeTakenSec++;
+            updateTimerDisplay();
+            
+            if (remainingSeconds <= 0) {
+              clearInterval(quizTimerInterval);
+              autoSubmitOnTimeout();
+            }
+          }
+        }, 1000);
+
+        // Switch to Quiz active page screen
+        goToScreen(3);
+        
+        // Render Active Question
+        renderCurrentQuestion();
+      }
+
+      // Timer MM:SS renderer
+      function updateTimerDisplay() {
+        const countdownEl = document.getElementById("quizTimerCountdown");
+        const timerBorder = document.getElementById("quizTimerBoundary");
+        
+        const minutes = Math.floor(remainingSeconds / 60);
+        const seconds = remainingSeconds % 60;
+        
+        const padM = String(minutes).padStart(2, "0");
+        const padS = String(seconds).padStart(2, "0");
+        
+        countdownEl.textContent = `${padM}:${padS}`;
+
+        // Turn red and pulse when less than 20% remains
+        const warningThreshold = totalSecondsLimit * 0.2;
+        if (remainingSeconds < warningThreshold) {
+          timerBorder.classList.remove("text-slate-700", "bg-slate-100");
+          timerBorder.classList.add("timer-danger", "bg-red-50", "border", "border-red-200");
+        } else {
+          timerBorder.classList.add("text-slate-700", "bg-slate-100");
+          timerBorder.classList.remove("timer-danger", "bg-red-50", "border", "border-red-200");
+        }
+      }
+
+      async function autoSubmitOnTimeout() {
+        isTimerPaused = true;
+        await showCustomConfirm({
+          title: "Timeout Expired!",
+          message: "Attention: Assessment time limit has expired! Directing you to your results summary page with your auto-committed responses.",
+          confirmText: "Go to Results",
+          mode: "alert",
+          icon: "hourglass",
+          iconColorClass: "text-rose-500",
+          iconBgClass: "bg-rose-50"
+        });
+        submitQuiz(true);
+      }
+
+      // Current interactive frame renderer
+      function renderCurrentQuestion() {
+        if (quizQuestions.length === 0) return;
+        const q = quizQuestions[currentQuestionIndex];
+
+        // Header elements
+        document.getElementById("quizActiveTopicLabel").textContent = selectedSubtopic;
+        document.getElementById("quizActiveQuestionCounter").textContent = `Question ${currentQuestionIndex + 1} of ${quizQuestions.length}`;
+        
+        // Progress bar percentage fill
+        const progressPercent = ((currentQuestionIndex + 1) / quizQuestions.length) * 100;
+        document.getElementById("quizProgressBarFill").style.width = `${progressPercent}%`;
+
+        // Card badges
+        document.getElementById("questionTopicBadge").textContent = selectedSubtopic;
+        document.getElementById("questionNumberIndicator").textContent = `QUESTION #${currentQuestionIndex + 1}`;
+        
+        const diffBadge = document.getElementById("questionDifficultyBadge");
+        const difficulty = q.difficulty || "Medium";
+        diffBadge.textContent = difficulty;
+        
+        // Adapt color accents based on difficulty tag
+        diffBadge.className = "";
+        if (difficulty.toLowerCase() === "easy") {
+          diffBadge.className = "bg-emerald-100 text-emerald-800 text-[10px] font-extrabold uppercase tracking-wider py-1 px-2.5 rounded";
+        } else if (difficulty.toLowerCase() === "hard") {
+          diffBadge.className = "bg-rose-100 text-rose-800 text-[10px] font-extrabold uppercase tracking-wider py-1 px-2.5 rounded";
+        } else {
+          diffBadge.className = "bg-amber-100 text-amber-800 text-[10px] font-extrabold uppercase tracking-wider py-1 px-2.5 rounded";
+        }
+
+        // Render clean monospace font toggles for programming tags
+        const questionTextContainer = document.getElementById("quizQuestionText");
+        questionTextContainer.textContent = q.question;
+        if ((typeof selectedCategory === "object" && selectedCategory && selectedCategory.id === "programming_questions") || q.question.includes("{") || q.question.includes(";") || q.question.includes("function")) {
+          questionTextContainer.classList.add("font-mono", "bg-slate-50", "p-3", "rounded-lg", "border", "border-slate-100", "text-sm", "whitespace-pre-line");
+        } else {
+          questionTextContainer.classList.remove("font-mono", "bg-slate-50", "p-3", "rounded-lg", "border", "border-slate-100", "text-sm", "whitespace-pre-line");
+        }
+
+        // Render Option Choices
+        const optionsContainer = document.getElementById("quizOptionsGrid");
+        optionsContainer.innerHTML = "";
+
+        const showExplChecked = localStorage.getItem("preferences_show_explanations") === "true";
+        const hasBeenAnswered = quizAnswers[currentQuestionIndex] !== undefined;
+
+        q.options.forEach((optText, optIndex) => {
+          const isSelected = quizAnswers[currentQuestionIndex] === optIndex;
+          const isCorrect = q.correct === optIndex;
+          const letter = String.fromCharCode(65 + optIndex); // A, B, C, D
+          
+          let optionStyle = "";
+          let badgeStyle = "";
+          let iconMarkup = "";
+
+          if (showExplChecked && hasBeenAnswered) {
+            // High-contrast highlighting after user answered
+            if (isCorrect) {
+              optionStyle = "border-emerald-500 bg-emerald-50/70 text-emerald-800 font-semibold ring-2 ring-emerald-500/20";
+              badgeStyle = "bg-emerald-500 border-emerald-500 text-white";
+              iconMarkup = `<i data-lucide="check-circle" class="w-5 h-5 text-emerald-600 flex-shrink-0 ml-1"></i>`;
+            } else if (isSelected) {
+              optionStyle = "border-rose-500 bg-rose-50/70 text-rose-800 ring-2 ring-rose-500/20";
+              badgeStyle = "bg-rose-500 border-rose-500 text-white";
+              iconMarkup = `<i data-lucide="x-circle" class="w-5 h-5 text-rose-600 flex-shrink-0 ml-1"></i>`;
+            } else {
+              optionStyle = "border-slate-200 bg-white opacity-55 text-slate-400 cursor-not-allowed";
+              badgeStyle = "bg-slate-100 border-slate-200 text-slate-300";
+            }
+          } else {
+            // Standard states
+            optionStyle = isSelected 
+              ? "border-brand-500 bg-brand-50 ring-2 ring-brand-500/20 text-brand-600 font-semibold" 
+              : "border-slate-200 bg-white hover:bg-slate-50 hover:border-slate-400 text-slate-700";
+            badgeStyle = isSelected 
+              ? "bg-brand-500 border-brand-500 text-white" 
+              : "bg-slate-100 border-slate-200 text-slate-400";
+            iconMarkup = isSelected ? `<i data-lucide="check-circle-2" class="w-5 h-5 text-brand-500 flex-shrink-0 ml-1"></i>` : "";
+          }
+
+          const optBtn = document.createElement("button");
+          optBtn.className = `option-select-btn text-left p-3.5 md:p-4 rounded-xl border transition-all duration-150 flex items-center justify-between text-sm gap-2 w-full min-w-0 ${optionStyle}`;
+          
+          if (showExplChecked && hasBeenAnswered) {
+            optBtn.disabled = true;
+          } else {
+            optBtn.onclick = () => pickOption(optIndex);
+          }
+
+          optBtn.innerHTML = `
+            <div class="flex items-center space-x-3 min-w-0 flex-1">
+              <span class="w-7 h-7 rounded-lg border text-xs font-bold font-mono tracking-wider flex items-center justify-center flex-shrink-0 ${badgeStyle}">
+                ${letter}
+              </span>
+              <span class="break-words min-w-0 flex-1 leading-normal">${escapeHTML(optText)}</span>
+            </div>
+            ${iconMarkup}
+          `;
+          optionsContainer.appendChild(optBtn);
+        });
+
+        // Add modular explanation box dynamically
+        let explBlock = document.getElementById("quizActiveExplanationBlock");
+        if (!explBlock) {
+          explBlock = document.createElement("div");
+          explBlock.id = "quizActiveExplanationBlock";
+          optionsContainer.parentNode.insertBefore(explBlock, optionsContainer.nextSibling);
+        }
+
+        if (showExplChecked && hasBeenAnswered) {
+          const isUserCorrect = quizAnswers[currentQuestionIndex] === q.correct;
+          const correctionStatus = isUserCorrect 
+            ? `<span class="text-emerald-700 font-bold">🎉 Correct Answer!</span>`
+            : `<span class="text-rose-700 font-bold">❌ Incorrect (Correct: ${String.fromCharCode(65 + q.correct)})</span>`;
+          
+          explBlock.className = "mt-4 p-4 rounded-xl bg-slate-50 border border-slate-200/80 space-y-2 text-xs text-slate-700 leading-relaxed";
+          explBlock.innerHTML = `
+            <div class="flex justify-between items-center pb-1.5 border-b border-slate-200/50">
+              <span class="font-bold uppercase tracking-wider text-[10px] text-slate-500 flex items-center gap-1.5">
+                <i data-lucide="book-open" class="w-4 h-4 text-brand-500"></i>
+                Detailed Solution & Feedback
+              </span>
+              <span>${correctionStatus}</span>
+            </div>
+            <p class="font-medium text-slate-650">${escapeHTML(q.explanation || "No explanation text provided.")}</p>
+          `;
+          explBlock.classList.remove("hidden");
+        } else {
+          explBlock.className = "hidden";
+          explBlock.innerHTML = "";
+        }
+
+        // Set Bookmark Star Indicator State
+        const isBookmarked = bookmarkedQuestions[currentQuestionIndex] === true;
+        const bmkIcon = document.getElementById("bookmarkBtnIcon");
+        const bmkBtn = document.getElementById("questionBookmarkBtn");
+        
+        if (isBookmarked) {
+          bmkIcon.classList.add("text-yellow-500", "fill-yellow-400");
+          bmkBtn.classList.add("bg-amber-50", "border-amber-200");
+        } else {
+          bmkIcon.classList.remove("text-yellow-500", "fill-yellow-400");
+          bmkBtn.classList.remove("bg-amber-50", "border-amber-200");
+        }
+
+        // Setup Navigator Index Indicator Dots
+        renderNavigatorDots();
+
+        // Control button locking states
+        const prevBtn = document.getElementById("quizPrevBtn");
+        const nextBtn = document.getElementById("quizNextBtn");
+
+        prevBtn.disabled = currentQuestionIndex === 0;
+        prevBtn.className = `flex items-center gap-1 bg-white border px-4 py-2 rounded-xl text-xs font-bold transition ${
+          currentQuestionIndex === 0 
+          ? "opacity-40 cursor-not-allowed border-slate-200 text-slate-400" 
+          : "hover:text-indigo-600 border-slate-200 text-slate-600"
+        }`;
+
+        if (currentQuestionIndex === quizQuestions.length - 1) {
+          nextBtn.innerHTML = `Finish Review <i data-lucide="check" class="w-4 h-4"></i>`;
+          nextBtn.className = "flex items-center gap-1 bg-emerald-500 hover:bg-emerald-600 text-white px-4 py-2 rounded-xl text-xs font-bold shadow-sm transition";
+        } else {
+          nextBtn.innerHTML = `Next <i data-lucide="chevron-right" class="w-4 h-4"></i>`;
+          nextBtn.className = "flex items-center gap-1 bg-brand-500 hover:bg-brand-600 text-white px-4 py-2 rounded-xl text-xs font-bold shadow-sm transition";
+        }
+
+        refreshLucideIcons();
+      }
+
+      function escapeHTML(str) {
+        return str.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+      }
+
+      // Option slot selected trigger
+      function pickOption(optionIndex) {
+        if (isTimerPaused) return;
+        quizAnswers[currentQuestionIndex] = optionIndex;
+        // Re-render layout card instantly to capture feedback state
+        renderCurrentQuestion();
+      }
+
+      // Bookmark trigger
+      function toggleCurrentQuestionBookmark() {
+        const currentToggle = bookmarkedQuestions[currentQuestionIndex] === true;
+        bookmarkedQuestions[currentQuestionIndex] = !currentToggle;
+        renderCurrentQuestion();
+      }
+
+      // Navigator quick leap dial
+      function renderNavigatorDots() {
+        const cont = document.getElementById("quickNavigatorDots");
+        cont.innerHTML = "";
+
+        quizQuestions.forEach((_, index) => {
+          const isSelected = index === currentQuestionIndex;
+          const isAnswered = quizAnswers[index] !== undefined;
+          const isBookmarked = bookmarkedQuestions[index] === true;
+
+          const dot = document.createElement("button");
+          dot.onclick = () => jumpToQuestion(index);
+          
+          let classes = "w-6.5 h-6.5 text-[10px] font-bold rounded-lg border flex items-center justify-center transition-all ";
+          
+          if (isSelected) {
+            classes += "bg-brand-500 border-brand-500 text-white ring-2 ring-brand-500/20";
+          } else if (isBookmarked) {
+            classes += "bg-amber-500 text-white border-amber-500";
+          } else if (isAnswered) {
+            classes += "bg-indigo-50 border-indigo-200 text-indigo-600";
+          } else {
+            classes += "bg-slate-100 border-slate-200 text-slate-400 hover:bg-slate-200";
+          }
+
+          dot.className = classes;
+          dot.textContent = index + 1;
+          cont.appendChild(dot);
+        });
+      }
+
+      function jumpToQuestion(idx) {
+        if (idx >= 0 && idx < quizQuestions.length) {
+          currentQuestionIndex = idx;
+          renderCurrentQuestion();
+        }
+      }
+
+      function goToPrevQuestion() {
+        if (currentQuestionIndex > 0) {
+          currentQuestionIndex--;
+          renderCurrentQuestion();
+        }
+      }
+
+      function goToNextQuestion() {
+        if (currentQuestionIndex < quizQuestions.length - 1) {
+          currentQuestionIndex++;
+          renderCurrentQuestion();
+        } else {
+          // Trigger final submit prompt
+          submitQuiz();
+        }
+      }
+
+      // Chronos controllers
+      function pauseQuizTimer() {
+        isTimerPaused = true;
+        document.getElementById("pauseOverlay").classList.remove("hidden");
+      }
+
+      function resumeQuizTimer() {
+        isTimerPaused = false;
+        document.getElementById("pauseOverlay").classList.add("hidden");
+      }
+
+      // ===============================================
+      // SUBMIT & OUTCOME RECORD MODULE
+      // ===============================================
+      async function submitQuiz(forcedOnTimeout = false) {
+        if (!forcedOnTimeout) {
+          // Double check answers coverage
+          const answeredCount = Object.keys(quizAnswers).length;
+          const unansweredCount = quizQuestions.length - answeredCount;
+          
+          if (unansweredCount > 0) {
+            const confirmVal = await showCustomConfirm({
+              title: "Unanswered Questions",
+              message: `You have left ${unansweredCount} questions unanswered out of ${quizQuestions.length}. Are you sure you want to finalize and submit the quiz?`,
+              confirmText: "Yes, Submit Anyway",
+              cancelText: "Keep Answering",
+              icon: "alert-triangle",
+              iconColorClass: "text-amber-500",
+              iconBgClass: "bg-amber-50"
+            });
+            if (!confirmVal) return;
+          } else {
+            const confirmVal = await showCustomConfirm({
+              title: "Finalize Submission",
+              message: "Are you ready to submit your exam now? This will grade your inputs and record your final statistics.",
+              confirmText: "Yes, Submit Quiz",
+              cancelText: "Keep Reviewing",
+              icon: "check-circle",
+              iconColorClass: "text-brand-500",
+              iconBgClass: "bg-brand-50"
+            });
+            if (!confirmVal) return;
+          }
+        }
+
+        // Halt clock
+        clearInterval(quizTimerInterval);
+        isTimerPaused = true;
+
+        // Process final diagnostic records
+        calculateAndRecordAssessmentScore();
+      }
+
+      function calculateAndRecordAssessmentScore() {
+        let correctAnswers = 0;
+        let wrongAnswers = 0;
+        let blankAnswers = 0;
+
+        quizQuestions.forEach((q, idx) => {
+          const userChoice = quizAnswers[idx];
+          if (userChoice === undefined) {
+            blankAnswers++;
+          } else if (userChoice === q.correct) {
+            correctAnswers++;
+          } else {
+            wrongAnswers++;
+          }
+        });
+
+        const rawScore = correctAnswers;
+        const total = quizQuestions.length;
+        const percentCalculated = Math.round((rawScore / total) * 100);
+
+        // Store assessment metrics into localStorage profile history
+        const resultPayload = {
+          categoryName: (typeof selectedCategory === "object" && selectedCategory)
+            ? selectedCategory.title
+            : "PDF Study Material",
+          subtopicName: selectedSubtopic,
+          correct: correctAnswers,
+          wrong: wrongAnswers,
+          unattempted: blankAnswers,
+          percent: percentCalculated,
+          totalQuestionsCount: total,
+          timestamp: new Date().toISOString()
+        };
+
+        recordHistoryItemInLocalStorage(resultPayload);
+
+        // Trigger confetti celebration on high threshold score
+        if (percentCalculated >= 70 && typeof confetti === 'function') {
+          triggerCelebrationConfetti();
+        }
+
+        // Advance to Results Display Screen
+        goToScreen(4);
+      }
+
+      function recordHistoryItemInLocalStorage(payload) {
+        let savedHistory = [];
+        try {
+          const raw = localStorage.getItem("aptitude_quiz_history_logs");
+          if (raw) savedHistory = JSON.parse(raw);
+        } catch(e) {
+          console.error("Malformed logs parsed.", e);
+        }
+
+        // Enforce max 5 records capacity limit
+        savedHistory.unshift(payload);
+        if (savedHistory.length > 5) {
+          savedHistory = savedHistory.slice(0, 5);
+        }
+
+        localStorage.setItem("aptitude_quiz_history_logs", JSON.stringify(savedHistory));
+      }
+
+      // Canvas Confetti animator trigger helper
+      function triggerCelebrationConfetti() {
+        const duration = 3 * 1000;
+        const end = Date.now() + duration;
+
+        (function frame() {
+          confetti({
+            particleCount: 5,
+            angle: 60,
+            spread: 55,
+            origin: { x: 0 }
+          });
+          confetti({
+            particleCount: 5,
+            angle: 120,
+            spread: 55,
+            origin: { x: 1 }
+          });
+
+          if (Date.now() < end) {
+            requestAnimationFrame(frame);
+          }
+        }());
+      }
+
+      // ===============================================
+      // SCREEN 4: SUMMARY & DETAILED DISPLAY RENDERERS
+      // ===============================================
+      let currentReviewFilter = "all";
+
+      function renderResultsSummaryDashboard() {
+        let correctAnswers = 0;
+        let wrongAnswers = 0;
+        let blankAnswers = 0;
+
+        quizQuestions.forEach((q, idx) => {
+          const userChoice = quizAnswers[idx];
+          if (userChoice === undefined) {
+            blankAnswers++;
+          } else if (userChoice === q.correct) {
+            correctAnswers++;
+          } else {
+            wrongAnswers++;
+          }
+        });
+
+        const total = quizQuestions.length;
+        const percent = Math.round((correctAnswers / total) * 100);
+
+        // Render Path banner
+        const catTitle = typeof selectedCategory === "object" && selectedCategory
+          ? selectedCategory.title 
+          : "PDF Study Material";
+        document.getElementById("resultsHeaderPath").textContent = `${catTitle} / ${selectedSubtopic}`;
+        document.getElementById("resultPercentage").textContent = `${percent}%`;
+
+        // Configure score colors matching targets
+        const ring = document.getElementById("resultScoreCircleRing");
+        ring.className = "relative w-32 h-32 rounded-full border-4 flex flex-col items-center justify-center bg-white/5 shadow-inner transition ";
+        
+        let headerTitle = "Nice Attempt!";
+        let headerMsg = "Let's review the questions to understand your scoring opportunities.";
+        
+        if (percent >= 70) {
+          ring.classList.add("border-emerald-400", "text-emerald-300");
+          headerTitle = "Outstanding Mastery!";
+          headerMsg = "Highly skilled! You conquered the conceptual threshold with top-tier marks.";
+        } else if (percent >= 40) {
+          ring.classList.add("border-amber-400", "text-amber-100");
+          headerTitle = "Proficient Focus!";
+          headerMsg = "A fair battle. Check through the incorrect steps to clear remaining gaps.";
+        } else {
+          ring.classList.add("border-rose-400", "text-rose-100");
+          headerTitle = "Diagnostic Opportunity";
+          headerMsg = "Don't fret. Aptitude is a learned skill. Spend more time practicing below.";
+        }
+
+        document.getElementById("resultMotivationalTitle").textContent = headerTitle;
+        document.getElementById("resultMotivationalMessage").textContent = headerMsg;
+
+        // Counter indicators
+        document.getElementById("resultScoreRatio").textContent = `${correctAnswers} / ${total}`;
+        document.getElementById("resultCorrectCount").textContent = correctAnswers;
+        document.getElementById("resultWrongCount").textContent = wrongAnswers;
+        document.getElementById("resultUnattemptedCount").textContent = blankAnswers;
+
+        // Render seconds time taken representation
+        const minutesTaken = Math.floor(timeTakenSec / 60);
+        const secondsRemainder = timeTakenSec % 60;
+        const totalMinutesEst = Math.floor(totalSecondsLimit / 60);
+        document.getElementById("resultDurationText").textContent = `Completion Time: ${minutesTaken}m ${secondsRemainder}s / ${totalMinutesEst}m total limit`;
+
+        const pdfSourceRow = document.getElementById("resultPdfSourceRow");
+        if (pdfSourceRow) {
+          if (pdfExtractedText && pdfFileInfo) {
+            pdfSourceRow.classList.remove("hidden");
+            document.getElementById("resultPdfFilename").textContent = pdfFileInfo.filename;
+            document.getElementById("resultPdfPages").textContent = 
+              `${pdfFileInfo.pageCount} pages, ~${pdfFileInfo.wordCount} words`;
+          } else {
+            pdfSourceRow.classList.add("hidden");
+          }
+        }
+
+        // Format difficulty badge in results
+        const resultDiffBadge = document.getElementById("resultDifficultyBadge");
+        if (resultDiffBadge) {
+          const difficultyValue = chosenDifficulty || "Medium";
+          resultDiffBadge.textContent = difficultyValue;
+          resultDiffBadge.className = "text-[10px] font-extrabold uppercase tracking-wider py-0.5 px-2.5 rounded";
+          
+          if (difficultyValue.toLowerCase() === "easy") {
+            resultDiffBadge.classList.add("bg-emerald-500/20", "text-emerald-300", "border", "border-emerald-500/30");
+          } else if (difficultyValue.toLowerCase() === "hard") {
+            resultDiffBadge.classList.add("bg-rose-500/20", "text-rose-300", "border", "border-rose-500/30");
+          } else {
+            resultDiffBadge.classList.add("bg-amber-500/20", "text-amber-300", "border", "border-amber-500/30");
+          }
+        }
+
+        // Render detailed feedback cards array below
+        currentReviewFilter = "all";
+        renderDetailedItemsReviewList();
+      }
+
+      function filterReview(type) {
+        currentReviewFilter = type;
+        
+        // Toggle btn class highlights
+        const btns = document.querySelectorAll(".review-filter-btn");
+        btns.forEach(btn => {
+          btn.className = "review-filter-btn px-2.5 py-1 rounded-md text-slate-500 hover:bg-slate-100 transition text-xs font-semibold";
+        });
+        
+        // Find triggering source target
+        event.target.className = "review-filter-btn px-2.5 py-1 rounded-md bg-brand-500 text-white text-xs font-extrabold shadow-sm transition";
+
+        renderDetailedItemsReviewList();
+      }
+
+      function renderDetailedItemsReviewList() {
+        const container = document.getElementById("resultsDetailedReviewContainer");
+        container.innerHTML = "";
+
+        let visibleIndex = 0;
+
+        quizQuestions.forEach((q, idx) => {
+          const userChoice = quizAnswers[idx];
+          const isCorrect = userChoice === q.correct;
+          const isBookmarked = bookmarkedQuestions[idx] === true;
+
+          // Apply filters
+          if (currentReviewFilter === "wrong" && userChoice !== undefined && isCorrect) return;
+          if (currentReviewFilter === "wrong" && userChoice === undefined) return; // unattempted isn't wrong strictly or user wants wrong focus
+          if (currentReviewFilter === "bookmarked" && !isBookmarked) return;
+
+          visibleIndex++;
+
+          const card = document.createElement("div");
+          card.className = `p-4 hover:border-slate-300 md:p-5 rounded-xl border bg-white shadow-xs space-y-4 transition ${
+            userChoice === undefined 
+            ? "border-slate-200" 
+            : isCorrect 
+              ? "border-emerald-200 bg-emerald-50/5" 
+              : "border-rose-200 bg-rose-50/5"
+          }`;
+
+          // Options layout inside review item
+          let optionsHTML = "";
+          q.options.forEach((optText, optIdx) => {
+            const letter = String.fromCharCode(65 + optIdx);
+            
+            let badgeStyle = "border-slate-100 bg-slate-50 text-slate-700";
+            let checkIcon = "";
+
+            if (optIdx === q.correct) {
+              // Always frame the correct answer clearly in green outline
+              badgeStyle = "bg-emerald-100 border-emerald-300 text-emerald-800 font-semibold ring-2 ring-emerald-500/15";
+              checkIcon = `<span class="text-xs bg-emerald-500 text-white font-bold px-1.5 py-0.5 rounded ml-2 inline-flex items-center gap-0.5"><i data-lucide="check" class="w-3 h-3"></i> Correct</span>`;
+            } else if (optIdx === userChoice) {
+              // User chose this option incorrectly
+              badgeStyle = "bg-rose-100 border-rose-300 text-rose-800 font-semibold";
+              checkIcon = `<span class="text-xs bg-rose-500 text-white font-bold px-1.5 py-0.5 rounded ml-2 inline-flex items-center gap-0.5"><i data-lucide="x" class="w-3 h-3"></i> Your Pick</span>`;
+            }
+
+            optionsHTML += `
+              <div class="p-2.5 rounded-lg border text-xs flex flex-col min-[480px]:flex-row min-[480px]:items-center min-[480px]:justify-between gap-1.5 w-full min-w-0 ${badgeStyle}">
+                <div class="min-w-0 flex-1">
+                  <span class="font-mono font-bold mr-2 text-[10px] bg-white border border-slate-200/50 w-5 h-5 inline-flex items-center justify-center rounded flex-shrink-0">${letter}</span>
+                  <span class="break-words leading-normal">${escapeHTML(optText)}</span>
+                </div>
+                ${checkIcon ? `<div class="flex-shrink-0 flex justify-end">${checkIcon}</div>` : ''}
+              </div>
+            `;
+          });
+
+          let explanationText = q.explanation || "Direct analytical solution matches standard formula.";
+          
+          card.innerHTML = `
+            <div class="flex flex-col gap-3">
+              <div class="flex flex-wrap items-center justify-between gap-2 border-b border-slate-100 pb-2">
+                <div class="flex flex-wrap items-center gap-1.5">
+                  <span class="bg-slate-100 text-slate-500 text-[10px] font-bold py-0.5 px-2 rounded-md">Q# ${idx + 1}</span>
+                  <span class="text-[10px] px-2 py-0.5 rounded-md ${
+                    q.difficulty?.toLowerCase() === "easy" 
+                    ? "bg-emerald-50 text-emerald-600 border border-emerald-100" 
+                    : q.difficulty?.toLowerCase() === "hard"
+                      ? "bg-rose-50 text-rose-600 border border-rose-100"
+                      : "bg-amber-50 text-amber-600 border border-amber-100"
+                  }">${q.difficulty || "Medium"}</span>
+                  
+                  ${isBookmarked ? `<span class="bg-amber-100 text-amber-800 text-[10px] font-bold py-0.5 px-2 rounded-md inline-flex items-center gap-0.5"><i data-lucide="star" class="w-2.5 h-2.5 fill-amber-500 text-amber-600"></i> Bookmarked</span>` : ''}
+                </div>
+                
+                <div class="flex-shrink-0">
+                  ${
+                    userChoice === undefined 
+                    ? `<span class="bg-slate-100 text-slate-500 text-[10px] font-bold px-2 py-0.5 rounded inline-flex items-center gap-1"><i data-lucide="help-circle" class="w-3.5 h-3.5 text-slate-400"></i> Skipped</span>` 
+                    : isCorrect 
+                      ? `<span class="bg-emerald-100 text-emerald-800 text-[10px] font-bold px-2 py-0.5 rounded inline-flex items-center gap-1"><i data-lucide="check-circle-2" class="w-3.5 h-3.5 text-emerald-500"></i> Correct</span>` 
+                      : `<span class="bg-rose-100 text-rose-800 text-[10px] font-bold px-2 py-0.5 rounded inline-flex items-center gap-1"><i data-lucide="x-circle" class="w-3.5 h-3.5 text-rose-500"></i> Incorrect</span>`
+                  }
+                </div>
+              </div>
+
+              <h4 class="text-sm font-semibold text-slate-800 leading-relaxed pt-0.5 select-all ${
+                (typeof selectedCategory === "object" && selectedCategory && selectedCategory.id === "programming_questions") || q.question.includes("{") ? "font-mono bg-slate-50 p-2.5 rounded text-[13px] border border-slate-100 whitespace-pre-line" : ""
+              }">
+                ${escapeHTML(q.question)}
+              </h4>
+            </div>
+
+            <!-- Options Stack -->
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-2 my-2">
+              ${optionsHTML}
+            </div>
+
+            <!-- EXPLANATION ACCORDION PANEL -->
+            <div class="bg-brand-50/50 border border-brand-100 rounded-xl p-3 md:p-4 text-xs space-y-2.5">
+              <div class="font-extrabold text-[#1a237e] uppercase tracking-widest text-[10px] flex items-center justify-between gap-1">
+                <span class="flex items-center gap-1">
+                  <i data-lucide="lightbulb" class="w-3.5 h-3.5 text-yellow-500 fill-yellow-400"></i> Code / Logic Solution
+                </span>
+                <span class="text-[9px] font-medium text-slate-400 font-mono tracking-normal capitalize">Initial breakdown</span>
+              </div>
+              <p class="text-slate-700 font-medium leading-relaxed font-sans prose select-text">${escapeHTML(explanationText)}</p>
+
+              <!-- Dynamic Interactive AI Deep-Dive Block -->
+              <div class="border-t border-indigo-100/60 pt-2.5">
+                <button onclick="requestDeepDiveExplanation(${idx})" id="deepDiveBtn-${idx}" class="text-[11px] font-bold text-brand-500 hover:text-brand-600 inline-flex items-center gap-1.5 bg-white border border-brand-200/60 hover:border-brand-300 px-3 py-2 rounded-lg shadow-2xs transition">
+                  <i data-lucide="sparkles" class="w-3.5 h-3.5 text-indigo-500 animate-pulse"></i>
+                  <span>Explain with Step-by-Step AI Deep-Dive</span>
+                </button>
+                <div id="deepDiveLoading-${idx}" class="hidden text-[11px] text-slate-500 flex items-center gap-2 mt-2">
+                  <span class="w-4 h-4 border-2 border-brand-500 border-t-transparent rounded-full animate-spin"></span>
+                  <span>Synthesizing smart step-by-step reasoning steps...</span>
+                </div>
+                <div id="deepDiveError-${idx}" class="hidden text-[11px] text-rose-600 font-semibold mt-2">
+                  Unable to contact explanation service. Please check connection and try again.
+                </div>
+                <div id="deepDiveContainer-${idx}" class="hidden mt-2.5 p-3 rounded-lg bg-white border border-indigo-100/50 text-[11.5px] text-slate-600 font-sans leading-relaxed prose select-text shadow-3xs overflow-x-auto">
+                  <!-- Rendered via marked.js -->
+                </div>
+              </div>
+            </div>
+          `;
+
+          container.appendChild(card);
+        });
+
+        if (visibleIndex === 0) {
+          container.innerHTML = `
+            <div class="text-center py-10 bg-slate-100 rounded-xl border border-dashed border-slate-300 text-slate-400">
+              <i data-lucide="folder-open" class="w-8 h-8 mx-auto mb-1 opacity-60"></i>
+              <p class="text-xs">No questions matched the selected filter context.</p>
+            </div>
+          `;
+        }
+
+        refreshLucideIcons();
+      }
+
+      async function requestDeepDiveExplanation(idx) {
+        const btn = document.getElementById(`deepDiveBtn-${idx}`);
+        const loader = document.getElementById(`deepDiveLoading-${idx}`);
+        const err = document.getElementById(`deepDiveError-${idx}`);
+        const resultContainer = document.getElementById(`deepDiveContainer-${idx}`);
+
+        // Safety toggles
+        if (btn) btn.classList.add("hidden");
+        if (loader) loader.classList.remove("hidden");
+        if (err) err.classList.add("hidden");
+        if (resultContainer) resultContainer.classList.add("hidden");
+
+        if (quizEngineMode === "offline") {
+          setTimeout(() => {
+            const q = quizQuestions[idx];
+            if (loader) loader.classList.add("hidden");
+            if (resultContainer) {
+              const localMarkdown = `
+### 💡 Offline Analytical Breakdown
+
+#### 1. **Core Concept**
+${q.explanation.split('\n')[0] || "Standard logical or verbal conventions."}
+
+#### 2. **Step-by-Step Walkthrough**
+${q.explanation}
+
+#### 3. **Option Verification**
+* **Correct Choice**: Option **${String.fromCharCode(65 + q.correct)}** - *"${q.options[q.correct]}"*
+* **Verification Status**: All quantitative/semantic rules fully satisfied. Secondary choices contradict critical axioms or lexical syntax principles.
+              `;
+              resultContainer.innerHTML = marked.parse(localMarkdown);
+              resultContainer.classList.remove("hidden");
+            }
+          }, 350);
+          return;
+        }
+
+        try {
+          const q = quizQuestions[idx];
+          
+          let userKey = localStorage.getItem("gemini_api_key") || "";
+          if (userKey && userKey.trim().startsWith("gsk_")) {
+            localStorage.removeItem("gemini_api_key");
+            userKey = "";
+            updateAPIStatusBadge();
+          }
+          const headers = { "Content-Type": "application/json" };
+          if (userKey) {
+            headers["X-Gemini-Key"] = userKey;
+          }
+
+          const response = await fetch("/api/explain", {
+            method: "POST",
+            headers: headers,
+            body: JSON.stringify({
+              question: q.question,
+              options: q.options,
+              correct: q.correct,
+              topic: selectedSubtopic || "Aptitude"
+            })
+          });
+
+          if (!response.ok) {
+            const errData = await response.json().catch(() => ({}));
+            if (response.status === 429) {
+              throw new Error("The Google Gemini API has temporarily exceeded its rate limit or daily quota. Please wait a brief moment and retry.");
+            }
+            throw new Error(errData.error || "Explain query failed");
+          }
+
+          const data = await response.json();
+          if (data && data.success && data.explanation) {
+            if (loader) loader.classList.add("hidden");
+            if (resultContainer) {
+              // Parse response markdown using marked.js correctly
+              resultContainer.innerHTML = marked.parse(data.explanation);
+              resultContainer.classList.remove("hidden");
+            }
+          } else {
+            throw new Error("No payload back from presentation layer.");
+          }
+        } catch (e) {
+          console.error("AI deep dive load failure:", e);
+          if (loader) loader.classList.add("hidden");
+          if (btn) btn.classList.remove("hidden");
+          if (err) {
+            err.textContent = e.message || "Unable to contact explanation service. Please check connection and try again.";
+            err.classList.remove("hidden");
+          }
+          
+          const isRateLimit = e.message && (e.message.includes("limit") || e.message.includes("quota") || e.message.includes("429") || e.message.includes("EXHAUSTED") || e.message.includes("exhausted"));
+          if (isRateLimit) {
+            showErrorOverlayWithAction(e.message, true);
+            const retryBtn = document.getElementById("errorRetryButton");
+            if (retryBtn) {
+              retryBtn.onclick = () => {
+                closeErrorOverlay();
+                requestDeepDiveExplanation(idx);
+              };
+            }
+          }
+        }
+      }
+
+      async function retakeCurrentTopic() {
+        if (!selectedCategory || !quizQuestions || quizQuestions.length === 0) {
+          goToScreen(1);
+          return;
+        }
+        
+        const confirmVal = await showCustomConfirm({
+          title: "Synthesize New Quiz?",
+          message: `Would you like to synthesize brand new questions on the current topic: ${selectedSubtopic}?`,
+          confirmText: "Yes, Synthesize",
+          cancelText: "Cancel",
+          icon: "refresh-cw",
+          iconColorClass: "text-brand-500",
+          iconBgClass: "bg-brand-50"
+        });
+        if (confirmVal) {
+          startQuizGeneration();
+        }
+      }
+
+      // ===============================================
+      // HISTORY DRAWER COMPONENT LOGIC
+      // ===============================================
+      function openHistorySidebar() {
+        renderSidebarLogs();
+        document.getElementById("historySidebar").classList.remove("hidden");
+        refreshLucideIcons();
+      }
+
+      function closeHistorySidebar() {
+        document.getElementById("historySidebar").classList.add("hidden");
+      }
+
+      async function clearHistoryLogs() {
+        const confirmVal = await showCustomConfirm({
+          title: "Clear All History?",
+          message: "Warning: This removes all historical test scores permanently from this browser. Continue?",
+          confirmText: "Yes, Purge History",
+          cancelText: "No, Keep Logs",
+          icon: "trash-2",
+          iconColorClass: "text-rose-500",
+          iconBgClass: "bg-rose-50"
+        });
+
+        if (confirmVal) {
+          localStorage.removeItem("aptitude_quiz_history_logs");
+          renderSidebarLogs();
+          renderQuickStats();
+          
+          await showCustomConfirm({
+            title: "Performance History Clear",
+            message: "Performance history was successfully purged fully from your browser localStorage.",
+            confirmText: "Dismiss",
+            mode: "alert",
+            icon: "check-circle-2",
+            iconColorClass: "text-emerald-500",
+            iconBgClass: "bg-emerald-50"
+          });
+        }
+      }
+
+      function renderSidebarLogs() {
+        const cont = document.getElementById("historyLogsList");
+        cont.innerHTML = "";
+
+        let historyItems = [];
+        try {
+          const raw = localStorage.getItem("aptitude_quiz_history_logs");
+          if (raw) historyItems = JSON.parse(raw);
+        } catch(e) {}
+
+        // Badge counter
+        const count = historyItems.length;
+        const b = document.getElementById("historyBadge");
+        if (count > 0) {
+          b.textContent = count;
+          b.classList.remove("hidden");
+        } else {
+          b.classList.add("hidden");
+        }
+
+        if (historyItems.length === 0) {
+          cont.innerHTML = `
+            <div class="text-center py-12 text-slate-400">
+              <i data-lucide="history" class="w-10 h-10 mx-auto mb-2 opacity-50 text-indigo-300"></i>
+              <p class="text-xs font-bold">No history available</p>
+              <p class="text-[11px] text-slate-400 mt-1">Conquer a quiz and log results here.</p>
+            </div>
+          `;
+          return;
+        }
+
+        historyItems.forEach(item => {
+          const date = new Date(item.timestamp).toLocaleDateString([], { month: 'short', day: 'numeric', hour: '2-digit', minute:'2-digit' });
+          const passed = item.percent >= 35; // standard 35% pass rule threshold (or 40%)
+
+          const block = document.createElement("div");
+          block.className = "p-3 bg-slate-50 border border-slate-200 rounded-xl space-y-1.5 shadow-2xs relative overflow-hidden";
+          block.innerHTML = `
+            <div class="flex items-start justify-between gap-2">
+              <div>
+                <span class="text-[9px] font-mono tracking-wider bg-slate-200 text-slate-600 px-1.5 py-0.5 rounded uppercase font-bold">${item.categoryName}</span>
+                <h4 class="text-xs font-bold text-slate-700 mt-1">${item.subtopicName}</h4>
+              </div>
+
+              <div class="text-right">
+                <span class="text-xs font-black block ${passed ? 'text-emerald-600' : 'text-rose-500'}">${item.percent}%</span>
+                <span class="text-[9px] font-bold uppercase tracking-wider block ${passed ? 'text-emerald-500 bg-emerald-50' : 'text-rose-400 bg-rose-50'} px-1 rounded text-center">${passed ? 'Passed' : 'Failed'}</span>
+              </div>
+            </div>
+
+            <div class="flex items-center justify-between text-[10px] text-slate-400 pt-1 border-t border-slate-200 border-dashed">
+              <span>Ratio: <b>${item.correct}/${item.totalQuestionsCount}</b> standard</span>
+              <span class="font-mono text-[9px]">${date}</span>
+            </div>
+          `;
+
+          cont.appendChild(block);
+        });
+
+        refreshLucideIcons();
+      }
+
+      function renderQuickStats() {
+        const statsWidget = document.getElementById("recentQuickStats");
+        const statsGrid = document.getElementById("quickStatsGrid");
+        
+        let historyItems = [];
+        try {
+          const raw = localStorage.getItem("aptitude_quiz_history_logs");
+          if (raw) historyItems = JSON.parse(raw);
+        } catch(e) {}
+
+        if (historyItems.length === 0) {
+          statsWidget.classList.add("hidden");
+          return;
+        }
+
+        statsWidget.classList.remove("hidden");
+        statsGrid.innerHTML = "";
+
+        // Calculate Average score
+        const totalTests = historyItems.length;
+        const totalCorrect = historyItems.reduce((acc, curr) => acc + curr.correct, 0);
+        const totalItems = historyItems.reduce((acc, curr) => acc + curr.totalQuestionsCount, 0);
+        const avgPercentage = Math.round(historyItems.reduce((acc, curr) => acc + curr.percent, 0) / totalTests);
+
+        const metricsList = [
+          { value: totalTests, label: "Attempts Done", icon: "activity", color: "blue" },
+          { value: `${avgPercentage}%`, label: "Avg Score", icon: "percent", color: "indigo" },
+          { value: `${totalCorrect}/${totalItems}`, label: "Overall Ratio", icon: "target", color: "emerald" },
+          { value: historyItems[0].subtopicName, label: "Last Practiced", icon: "sparkles", color: "amber", isText: true }
+        ];
+
+        metricsList.forEach(m => {
+          const mCard = document.createElement("div");
+          mCard.className = "bg-slate-50 border border-slate-100 p-3 rounded-lg flex items-center space-x-2.5";
+          mCard.innerHTML = `
+            <div class="p-1 px-1.5 rounded bg-${m.color}-500/10 text-${m.color}-600">
+              <i data-lucide="${m.icon}" class="w-4 h-4"></i>
+            </div>
+            <div class="min-w-0 flex-1">
+              <div class="text-xs font-bold text-slate-700 truncate" title="${m.value}">${m.value}</div>
+              <div class="text-[9px] text-slate-400 font-medium uppercase tracking-wider truncate">${m.label}</div>
+            </div>
+          `;
+          statsGrid.appendChild(mCard);
+        });
+
+        // Maintain header history badge updating
+        const b = document.getElementById("historyBadge");
+        b.textContent = historyItems.length;
+        b.classList.remove("hidden");
+
+        refreshLucideIcons();
+      }
+
+      // ===============================================
+      // ACCESSIBLE KEYBOARD SHORTCUTS CONTROLLER
+      // ===============================================
+      function toggleShortcutModal() {
+        const modal = document.getElementById("shortcutModal");
+        modal.classList.toggle("hidden");
+        refreshLucideIcons();
+      }
+
+      function setupShortcutsListener() {
+        document.addEventListener("keydown", (e) => {
+          // Block shortcut capture inside entry inputs
+          if (document.activeElement.tagName === "INPUT" || document.activeElement.tagName === "TEXTAREA") {
+            return;
+          }
+
+          const k = e.key;
+
+          // Quiz screen gameplay triggers
+          if (currentScreen === 3) {
+            if (isTimerPaused && k !== "Escape") return;
+
+            if (k === "1" || k === "2" || k === "3" || k === "4") {
+              const optIndex = parseInt(k) - 1;
+              pickOption(optIndex);
+            } else if (k === "Enter") {
+              goToNextQuestion();
+            } else if (k.toLowerCase() === "p") {
+              goToPrevQuestion();
+            } else if (k.toLowerCase() === "b") {
+              toggleCurrentQuestionBookmark();
+            } else if (k === "Escape") {
+              e.preventDefault();
+              if (isTimerPaused) {
+                resumeQuizTimer();
+              } else {
+                pauseQuizTimer();
+              }
+            }
+          }
+        });
+      }
+
+      // Generic trigger
+      function refreshLucideIcons() {
+        if (window.lucide) {
+          window.lucide.createIcons();
+        }
+      }
+    </script>
+  </body>
+</html>
